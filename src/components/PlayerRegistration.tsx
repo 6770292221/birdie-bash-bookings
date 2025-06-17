@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Calendar, MapPin, Users, Clock } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,21 +8,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Event, Player } from '@/pages/Index';
+import { useToast } from '@/hooks/use-toast';
 
 interface PlayerRegistrationProps {
   event: Event;
   onRegister: (eventId: string, playerData: Omit<Player, 'id' | 'registrationTime' | 'status'>) => void;
+  onCancelRegistration: (eventId: string, playerId: string, isEventDay: boolean) => void;
 }
 
-const PlayerRegistration = ({ event, onRegister }: PlayerRegistrationProps) => {
+const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerRegistrationProps) => {
   const [showForm, setShowForm] = useState(false);
   const [playerName, setPlayerName] = useState('');
-  const [playerEmail, setPlayerEmail] = useState('');
   const [endTime, setEndTime] = useState('');
+  const { toast } = useToast();
 
   const registeredPlayers = event.players.filter(p => p.status === 'registered');
   const waitlistPlayers = event.players.filter(p => p.status === 'waitlist');
   const isFull = registeredPlayers.length >= event.maxPlayers;
+
+  // Check if it's event day
+  const isEventDay = new Date().toDateString() === new Date(event.eventDate).toDateString();
 
   // Get available end times based on court schedules
   const getAvailableEndTimes = () => {
@@ -46,13 +51,29 @@ const PlayerRegistration = ({ event, onRegister }: PlayerRegistrationProps) => {
     e.preventDefault();
     onRegister(event.id, {
       name: playerName,
-      email: playerEmail,
+      email: '', // No longer required
       endTime,
     });
     setPlayerName('');
-    setPlayerEmail('');
     setEndTime('');
     setShowForm(false);
+    
+    toast({
+      title: "Registration Successful",
+      description: isFull ? "You've been added to the waitlist" : "You've been registered for the event",
+    });
+  };
+
+  const handleCancelRegistration = (playerId: string, playerName: string) => {
+    onCancelRegistration(event.id, playerId, isEventDay);
+    
+    toast({
+      title: "Registration Cancelled",
+      description: isEventDay 
+        ? `${playerName}'s registration cancelled. 100 THB fine applied for same-day cancellation.`
+        : `${playerName}'s registration cancelled successfully.`,
+      variant: isEventDay ? "destructive" : "default",
+    });
   };
 
   return (
@@ -135,19 +156,6 @@ const PlayerRegistration = ({ event, onRegister }: PlayerRegistrationProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="playerEmail" className="text-gray-700">Email</Label>
-              <Input
-                id="playerEmail"
-                type="email"
-                value={playerEmail}
-                onChange={(e) => setPlayerEmail(e.target.value)}
-                placeholder="Enter your email"
-                required
-                className="border-green-200 focus:border-green-500"
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="endTime" className="text-gray-700">Play Until</Label>
               <Select value={endTime} onValueChange={setEndTime} required>
                 <SelectTrigger className="border-green-200 focus:border-green-500">
@@ -185,20 +193,49 @@ const PlayerRegistration = ({ event, onRegister }: PlayerRegistrationProps) => {
         )}
 
         {registeredPlayers.length > 0 && (
-          <div className="space-y-2 max-h-24 overflow-y-auto">
-            <h4 className="font-medium text-gray-700 text-sm">Registered:</h4>
+          <div className="space-y-2 max-h-32 overflow-y-auto">
+            <h4 className="font-medium text-gray-700 text-sm">Registered Players:</h4>
             <div className="space-y-1">
-              {registeredPlayers.slice(0, 3).map((player) => (
-                <div key={player.id} className="flex justify-between items-center text-xs bg-green-50 p-1 rounded">
-                  <span>{player.name}</span>
-                  <span className="text-gray-500">Until {player.endTime}</span>
+              {registeredPlayers.map((player) => (
+                <div key={player.id} className="flex justify-between items-center text-xs bg-green-50 p-2 rounded">
+                  <div>
+                    <span className="font-medium">{player.name}</span>
+                    <span className="text-gray-500 ml-2">Until {player.endTime}</span>
+                  </div>
+                  <Button
+                    onClick={() => handleCancelRegistration(player.id, player.name)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
                 </div>
               ))}
-              {registeredPlayers.length > 3 && (
-                <p className="text-xs text-gray-500 italic">
-                  +{registeredPlayers.length - 3} more players
-                </p>
-              )}
+            </div>
+          </div>
+        )}
+
+        {waitlistPlayers.length > 0 && (
+          <div className="space-y-2 max-h-24 overflow-y-auto">
+            <h4 className="font-medium text-gray-700 text-sm">Waitlist:</h4>
+            <div className="space-y-1">
+              {waitlistPlayers.map((player) => (
+                <div key={player.id} className="flex justify-between items-center text-xs bg-yellow-50 p-2 rounded">
+                  <div>
+                    <span className="font-medium">{player.name}</span>
+                    <span className="text-gray-500 ml-2">Until {player.endTime}</span>
+                  </div>
+                  <Button
+                    onClick={() => handleCancelRegistration(player.id, player.name)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
             </div>
           </div>
         )}

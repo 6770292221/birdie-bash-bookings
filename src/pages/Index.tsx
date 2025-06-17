@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Calendar, MapPin, Users, Clock, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CreateEventForm from '@/components/CreateEventForm';
 import EventCard from '@/components/EventCard';
 import PlayerRegistration from '@/components/PlayerRegistration';
+import EventManagement from '@/components/EventManagement';
 
 export interface Court {
   courtNumber: number;
@@ -45,7 +45,7 @@ const Index = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showRegistration, setShowRegistration] = useState(false);
+  const [showManagement, setShowManagement] = useState(false);
 
   const handleCreateEvent = (eventData: Omit<Event, 'id' | 'players' | 'status' | 'createdBy'>) => {
     const newEvent: Event = {
@@ -76,7 +76,6 @@ const Index = () => {
       }
       return event;
     }));
-    setShowRegistration(false);
   };
 
   const handleCancelRegistration = (eventId: string, playerId: string, isEventDay: boolean = false) => {
@@ -107,6 +106,17 @@ const Index = () => {
       }
       return event;
     }));
+  };
+
+  const handleUpdateEvent = (eventId: string, updates: Partial<Event>) => {
+    setEvents(events.map(event => 
+      event.id === eventId ? { ...event, ...updates } : event
+    ));
+  };
+
+  const handleSelectEvent = (event: Event) => {
+    setSelectedEvent(event);
+    setShowManagement(true);
   };
 
   const upcomingEvents = events.filter(e => e.status === 'upcoming');
@@ -207,7 +217,7 @@ const Index = () => {
                 <EventCard
                   key={event.id}
                   event={event}
-                  onSelectEvent={setSelectedEvent}
+                  onSelectEvent={handleSelectEvent}
                   onCancelRegistration={handleCancelRegistration}
                 />
               ))}
@@ -243,6 +253,7 @@ const Index = () => {
                     key={event.id}
                     event={event}
                     onRegister={handlePlayerRegistration}
+                    onCancelRegistration={handleCancelRegistration}
                   />
                 ))}
               </div>
@@ -257,6 +268,18 @@ const Index = () => {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Event Management Modal */}
+        {showManagement && selectedEvent && (
+          <EventManagement
+            event={selectedEvent}
+            onUpdateEvent={handleUpdateEvent}
+            onClose={() => {
+              setShowManagement(false);
+              setSelectedEvent(null);
+            }}
+          />
+        )}
       </div>
     </div>
   );
