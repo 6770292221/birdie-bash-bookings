@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Event, Court } from '@/pages/Index';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Event, Court, Player } from '@/pages/Index';
 import { useToast } from '@/hooks/use-toast';
 
 interface EventManagementProps {
@@ -28,11 +29,40 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
   const [actualCourts, setActualCourts] = useState<Court[]>(event.courts);
   const [shuttlecocksUsed, setShuttlecocksUsed] = useState(event.shuttlecocksUsed || 0);
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingPlayers, setIsEditingPlayers] = useState(false);
+  const [editingPlayers, setEditingPlayers] = useState<Player[]>(event.players);
   const [costBreakdown, setCostBreakdown] = useState<CostBreakdown[]>([]);
   const { toast } = useToast();
 
-  const registeredPlayers = event.players.filter(p => p.status === 'registered');
-  const cancelledOnEventDay = event.players.filter(p => p.status === 'cancelled' && p.cancelledOnEventDay);
+  const registeredPlayers = editingPlayers.filter(p => p.status === 'registered');
+  const cancelledOnEventDay = editingPlayers.filter(p => p.status === 'cancelled' && p.cancelledOnEventDay);
+
+  // Get available times based on court schedules (hourly intervals)
+  const getAvailableTimes = () => {
+    const times: string[] = [];
+    const allStartTimes: number[] = [];
+    const allEndTimes: number[] = [];
+
+    actualCourts.forEach(court => {
+      const start = new Date(`2000-01-01T${court.startTime}`).getTime();
+      const end = new Date(`2000-01-01T${court.endTime}`).getTime();
+      allStartTimes.push(start);
+      allEndTimes.push(end);
+    });
+
+    const earliestStart = Math.min(...allStartTimes);
+    const latestEnd = Math.max(...allEndTimes);
+
+    // Generate hourly intervals from earliest start to latest end
+    for (let time = earliestStart; time <= latestEnd; time += 60 * 60000) {
+      const timeString = new Date(time).toTimeString().slice(0, 5);
+      times.push(timeString);
+    }
+
+    return times;
+  };
+
+  const availableTimes = getAvailableTimes();
 
   const handleCourtTimeChange = (courtIndex: number, field: 'actualStartTime' | 'actualEndTime', value: string) => {
     const updatedCourts = [...actualCourts];
@@ -41,6 +71,13 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
       [field]: value
     };
     setActualCourts(updatedCourts);
+  };
+
+  const handlePlayerChange = (playerId: string, field: 'name' | 'endTime', value: string) => {
+    const updatedPlayers = editingPlayers.map(player => 
+      player.id === playerId ? { ...player, [field]: value } : player
+    );
+    setEditingPlayers(updatedPlayers);
   };
 
   const addNewCourt = () => {
@@ -63,6 +100,10 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
   };
 
   const calculateCosts = () => {
+    // Use the current registered players from editingPlayers
+    const currentRegisteredPlayers = editingPlayers.filter(p => p.status === 'registered');
+    const currentCancelledOnEventDay = editingPlayers.filter(p => p.status === 'cancelled' && p.cancelledOnEventDay);
+
     // Calculate total court cost based on actual usage
     const courtCostTotal = actualCourts.reduce((sum, court) => {
       const startTime = court.actualStartTime || court.startTime;
@@ -79,7 +120,7 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
       return new Date(`2000-01-01T${startTime}`).getTime();
     }));
 
-    const totalPlayerHours = registeredPlayers.reduce((sum, player) => {
+    const totalPlayerHours = currentRegisteredPlayers.reduce((sum, player) => {
       const playerEndTime = new Date(`2000-01-01T${player.endTime}`).getTime();
       const playerHours = (playerEndTime - eventStartTime) / (1000 * 60 * 60);
       return sum + Math.max(0, playerHours);
@@ -87,20 +128,20 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
 
     // Calculate shuttlecock cost
     const shuttlecockCost = shuttlecocksUsed * event.shuttlecockPrice;
-    const shuttlecockCostPerPlayer = shuttlecockCost / registeredPlayers.length;
+    const shuttlecockCostPerPlayer = shuttlecockCost / currentRegisteredPlayers.length;
 
     // Calculate late cancel fine total
-    const totalFine = cancelledOnEventDay.length * 100;
-    const finePerPlayer = totalFine / registeredPlayers.length;
+    const totalFine = currentCancelledOnEventDay.length * 100;
+    const finePerPlayer = totalFine / currentRegisteredPlayers.length;
 
     // Calculate individual costs
-    const breakdown: CostBreakdown[] = registeredPlayers.map(player => {
+    const breakdown: CostBreakdown[] = currentRegisteredPlayers.map(player => {
       const playerEndTime = new Date(`2000-01-01T${player.endTime}`).getTime();
       const playerHours = Math.max(0, (playerEndTime - eventStartTime) / (1000 * 60 * 60));
       
       const individualCourtCost = totalPlayerHours > 0 
         ? (playerHours / totalPlayerHours) * courtCostTotal 
-        : courtCostTotal / registeredPlayers.length;
+        : courtCostTotal / currentRegisteredPlayers.length;
 
       const courtFee = Math.round(individualCourtCost);
       const shuttlecockFee = Math.round(shuttlecockCostPerPlayer);
@@ -135,6 +176,18 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
     toast({
       title: "Event Updated",
       description: "Actual court usage and shuttlecock count saved successfully",
+    });
+  };
+
+  const handleSavePlayerChanges = () => {
+    onUpdateEvent(event.id, {
+      players: editingPlayers
+    });
+    setIsEditingPlayers(false);
+    
+    toast({
+      title: "Players Updated",
+      description: "Player information saved successfully",
     });
   };
 
@@ -251,15 +304,56 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
             <Card>
               <CardHeader>
                 <CardTitle>Players & Cancellations</CardTitle>
+                <div className="flex gap-2">
+                  {!isEditingPlayers && (
+                    <Button onClick={() => setIsEditingPlayers(true)} variant="outline" size="sm">
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Edit Players
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <h4 className="font-medium text-green-700 mb-2">Registered Players ({registeredPlayers.length})</h4>
-                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
                     {registeredPlayers.map(player => (
-                      <div key={player.id} className="flex justify-between text-sm bg-green-50 p-2 rounded">
-                        <span>{player.name}</span>
-                        <span>Until {player.endTime}</span>
+                      <div key={player.id} className="bg-green-50 p-2 rounded">
+                        {isEditingPlayers ? (
+                          <div className="space-y-2">
+                            <div>
+                              <Label className="text-xs">Player Name</Label>
+                              <Input
+                                value={player.name}
+                                onChange={(e) => handlePlayerChange(player.id, 'name', e.target.value)}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">End Time</Label>
+                              <Select 
+                                value={player.endTime} 
+                                onValueChange={(value) => handlePlayerChange(player.id, 'endTime', value)}
+                              >
+                                <SelectTrigger className="h-8 text-sm">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {availableTimes.map(time => (
+                                    <SelectItem key={time} value={time}>
+                                      {time}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between text-sm">
+                            <span>{player.name}</span>
+                            <span>Until {player.endTime}</span>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -276,6 +370,25 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {isEditingPlayers && (
+                  <div className="flex gap-2 pt-2 border-t">
+                    <Button onClick={handleSavePlayerChanges} className="flex-1">
+                      <Save className="w-4 h-4 mr-2" />
+                      Save Players
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        setIsEditingPlayers(false);
+                        setEditingPlayers(event.players);
+                      }} 
+                      variant="outline" 
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
                   </div>
                 )}
               </CardContent>
