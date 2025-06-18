@@ -1,12 +1,12 @@
-
 import { useState } from 'react';
-import { Calculator, Clock, DollarSign, Edit2, Save, X, Plus } from 'lucide-react';
+import { Calculator, Clock, DollarSign, Edit2, Save, X, Plus, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Event, Court, Player } from '@/pages/Index';
 import { useToast } from '@/hooks/use-toast';
 
@@ -31,6 +31,7 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
   const [isEditing, setIsEditing] = useState(false);
   const [isEditingPlayers, setIsEditingPlayers] = useState(false);
   const [editingPlayers, setEditingPlayers] = useState<Player[]>(event.players);
+  const [absentPlayers, setAbsentPlayers] = useState<Set<string>>(new Set());
   const [costBreakdown, setCostBreakdown] = useState<CostBreakdown[]>([]);
   const { toast } = useToast();
 
@@ -78,6 +79,16 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
       player.id === playerId ? { ...player, [field]: value } : player
     );
     setEditingPlayers(updatedPlayers);
+  };
+
+  const handleAbsentToggle = (playerId: string, isAbsent: boolean) => {
+    const newAbsentPlayers = new Set(absentPlayers);
+    if (isAbsent) {
+      newAbsentPlayers.add(playerId);
+    } else {
+      newAbsentPlayers.delete(playerId);
+    }
+    setAbsentPlayers(newAbsentPlayers);
   };
 
   const addNewCourt = () => {
@@ -131,7 +142,7 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
     const shuttlecockCostPerPlayer = shuttlecockCost / currentRegisteredPlayers.length;
 
     // Calculate late cancel fine total
-    const totalFine = currentCancelledOnEventDay.length * 100;
+    const totalFine = currentCancelledOnEventDay.length * 100 + absentPlayers.size * 100;
     const finePerPlayer = totalFine / currentRegisteredPlayers.length;
 
     // Calculate individual costs
@@ -321,6 +332,16 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                       <div key={player.id} className="bg-green-50 p-2 rounded">
                         {isEditingPlayers ? (
                           <div className="space-y-2">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Checkbox
+                                id={`absent-${player.id}`}
+                                checked={absentPlayers.has(player.id)}
+                                onCheckedChange={(checked) => handleAbsentToggle(player.id, !!checked)}
+                              />
+                              <Label htmlFor={`absent-${player.id}`} className="text-xs text-red-600">
+                                Mark as absent (100 THB fine)
+                              </Label>
+                            </div>
                             <div>
                               <Label className="text-xs">Player Name</Label>
                               <Input
@@ -349,8 +370,16 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                             </div>
                           </div>
                         ) : (
-                          <div className="flex justify-between text-sm">
-                            <span>{player.name}</span>
+                          <div className="flex justify-between items-center text-sm">
+                            <div className="flex items-center gap-2">
+                              <span>{player.name}</span>
+                              {absentPlayers.has(player.id) && (
+                                <Badge variant="destructive" className="text-xs">
+                                  <UserX className="w-3 h-3 mr-1" />
+                                  Absent
+                                </Badge>
+                              )}
+                            </div>
                             <span>Until {player.endTime}</span>
                           </div>
                         )}
@@ -373,6 +402,23 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                   </div>
                 )}
 
+                {absentPlayers.size > 0 && (
+                  <div>
+                    <h4 className="font-medium text-red-700 mb-2">Absent Players ({absentPlayers.size})</h4>
+                    <div className="space-y-1">
+                      {Array.from(absentPlayers).map(playerId => {
+                        const player = registeredPlayers.find(p => p.id === playerId);
+                        return player ? (
+                          <div key={playerId} className="flex justify-between text-sm bg-red-50 p-2 rounded">
+                            <span>{player.name}</span>
+                            <Badge variant="destructive" className="text-xs">100 THB Fine</Badge>
+                          </div>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {isEditingPlayers && (
                   <div className="flex gap-2 pt-2 border-t">
                     <Button onClick={handleSavePlayerChanges} className="flex-1">
@@ -383,6 +429,7 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                       onClick={() => {
                         setIsEditingPlayers(false);
                         setEditingPlayers(event.players);
+                        setAbsentPlayers(new Set());
                       }} 
                       variant="outline" 
                       className="flex-1"

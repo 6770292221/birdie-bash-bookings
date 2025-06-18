@@ -1,5 +1,4 @@
-
-import { Calendar, MapPin, Users, Clock, Calculator } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Calculator, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,10 +8,11 @@ import { useLanguage } from '@/contexts/LanguageContext';
 interface EventCardProps {
   event: Event;
   onSelectEvent: (event: Event) => void;
+  onEditEvent?: (event: Event) => void;
   onCancelRegistration: (eventId: string, playerId: string, isEventDay: boolean) => void;
 }
 
-const EventCard = ({ event, onSelectEvent }: EventCardProps) => {
+const EventCard = ({ event, onSelectEvent, onEditEvent }: EventCardProps) => {
   const { t } = useLanguage();
   const registeredPlayers = event.players.filter(p => p.status === 'registered');
   const waitlistPlayers = event.players.filter(p => p.status === 'waitlist');
@@ -40,12 +40,24 @@ const EventCard = ({ event, onSelectEvent }: EventCardProps) => {
               {new Date(event.eventDate).toLocaleDateString()}
             </CardDescription>
           </div>
-          <Badge 
-            variant="secondary" 
-            className={isFull ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}
-          >
-            {isFull ? t('status.full') : t('status.available')}
-          </Badge>
+          <div className="flex gap-2 items-center">
+            <Badge 
+              variant="secondary" 
+              className={isFull ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}
+            >
+              {isFull ? t('status.full') : t('status.available')}
+            </Badge>
+            {onEditEvent && (
+              <Button
+                onClick={() => onEditEvent(event)}
+                variant="ghost"
+                size="sm"
+                className="text-gray-500 hover:text-blue-600"
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
 
