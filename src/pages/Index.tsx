@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Calendar, MapPin, Users, Clock, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,8 @@ import CreateEventForm from '@/components/CreateEventForm';
 import EventCard from '@/components/EventCard';
 import PlayerRegistration from '@/components/PlayerRegistration';
 import EventManagement from '@/components/EventManagement';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 
 export interface Court {
   courtNumber: number;
@@ -20,6 +23,7 @@ export interface Player {
   id: string;
   name: string;
   email: string;
+  startTime?: string;
   endTime: string;
   registrationTime: Date;
   status: 'registered' | 'waitlist' | 'cancelled';
@@ -41,7 +45,8 @@ export interface Event {
   createdBy: string;
 }
 
-const Index = () => {
+const IndexContent = () => {
+  const { t } = useLanguage();
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -53,7 +58,7 @@ const Index = () => {
       id: Date.now().toString(),
       players: [],
       status: 'upcoming',
-      createdBy: 'Group Leader', // In real app, this would be the logged-in user
+      createdBy: 'Group Leader',
     };
     setEvents([...events, newEvent]);
     setShowCreateForm(false);
@@ -127,12 +132,20 @@ const Index = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Badminton Court Booking
-          </h1>
-          <p className="text-xl text-gray-600">
-            Manage your group play sessions with ease
-          </p>
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex-1"></div>
+            <div className="flex-1 text-center">
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                {t('app.title')}
+              </h1>
+              <p className="text-xl text-gray-600">
+                {t('app.subtitle')}
+              </p>
+            </div>
+            <div className="flex-1 flex justify-end">
+              <LanguageSwitcher />
+            </div>
+          </div>
         </div>
 
         {/* Quick Stats */}
@@ -142,7 +155,7 @@ const Index = () => {
               <Calendar className="h-8 w-8 text-blue-600 mr-3" />
               <div>
                 <p className="text-2xl font-bold text-gray-900">{upcomingEvents.length}</p>
-                <p className="text-sm text-gray-600">Upcoming Events</p>
+                <p className="text-sm text-gray-600">{t('events.upcoming')}</p>
               </div>
             </CardContent>
           </Card>
@@ -154,7 +167,7 @@ const Index = () => {
                 <p className="text-2xl font-bold text-gray-900">
                   {upcomingEvents.reduce((sum, event) => sum + event.players.filter(p => p.status === 'registered').length, 0)}
                 </p>
-                <p className="text-sm text-gray-600">Total Players</p>
+                <p className="text-sm text-gray-600">{t('events.total_players')}</p>
               </div>
             </CardContent>
           </Card>
@@ -166,7 +179,7 @@ const Index = () => {
                 <p className="text-2xl font-bold text-gray-900">
                   {upcomingEvents.reduce((sum, event) => sum + event.courts.length, 0)}
                 </p>
-                <p className="text-sm text-gray-600">Courts Booked</p>
+                <p className="text-sm text-gray-600">{t('events.courts_booked')}</p>
               </div>
             </CardContent>
           </Card>
@@ -176,7 +189,7 @@ const Index = () => {
               <Clock className="h-8 w-8 text-orange-600 mr-3" />
               <div>
                 <p className="text-2xl font-bold text-gray-900">{completedEvents.length}</p>
-                <p className="text-sm text-gray-600">Completed</p>
+                <p className="text-sm text-gray-600">{t('events.completed')}</p>
               </div>
             </CardContent>
           </Card>
@@ -186,22 +199,22 @@ const Index = () => {
         <Tabs defaultValue="events" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2 bg-white/70 backdrop-blur-sm">
             <TabsTrigger value="events" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-              Events Management
+              {t('events.management')}
             </TabsTrigger>
             <TabsTrigger value="registration" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
-              Player Registration
+              {t('registration')}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="events" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold text-gray-900">Events</h2>
+              <h2 className="text-2xl font-semibold text-gray-900">{t('events.management')}</h2>
               <Button 
                 onClick={() => setShowCreateForm(true)}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Create Event
+                {t('events.create')}
               </Button>
             </div>
 
@@ -227,14 +240,14 @@ const Index = () => {
               <Card className="bg-white/70 backdrop-blur-sm">
                 <CardContent className="text-center py-12">
                   <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-600 mb-2">No Events Yet</h3>
-                  <p className="text-gray-500 mb-4">Create your first badminton event to get started!</p>
+                  <h3 className="text-xl font-semibold text-gray-600 mb-2">{t('events.no_events')}</h3>
+                  <p className="text-gray-500 mb-4">{t('events.no_events_desc')}</p>
                   <Button 
                     onClick={() => setShowCreateForm(true)}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Create Event
+                    {t('events.create')}
                   </Button>
                 </CardContent>
               </Card>
@@ -243,7 +256,7 @@ const Index = () => {
 
           <TabsContent value="registration" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold text-gray-900">Register for Events</h2>
+              <h2 className="text-2xl font-semibold text-gray-900">{t('registration')}</h2>
             </div>
 
             {upcomingEvents.length > 0 ? (
@@ -261,8 +274,8 @@ const Index = () => {
               <Card className="bg-white/70 backdrop-blur-sm">
                 <CardContent className="text-center py-12">
                   <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-600 mb-2">No Events Available</h3>
-                  <p className="text-gray-500">There are no upcoming events to register for at the moment.</p>
+                  <h3 className="text-xl font-semibold text-gray-600 mb-2">{t('registration.no_events')}</h3>
+                  <p className="text-gray-500">{t('registration.no_events_desc')}</p>
                 </CardContent>
               </Card>
             )}
@@ -282,6 +295,14 @@ const Index = () => {
         )}
       </div>
     </div>
+  );
+};
+
+const Index = () => {
+  return (
+    <LanguageProvider>
+      <IndexContent />
+    </LanguageProvider>
   );
 };
 

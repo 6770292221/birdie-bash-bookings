@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Event, Player } from '@/pages/Index';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PlayerRegistrationProps {
   event: Event;
@@ -17,8 +18,10 @@ interface PlayerRegistrationProps {
 }
 
 const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerRegistrationProps) => {
+  const { t } = useLanguage();
   const [showForm, setShowForm] = useState(false);
   const [playerName, setPlayerName] = useState('');
+  const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const { toast } = useToast();
 
@@ -29,32 +32,63 @@ const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerR
   // Check if it's event day
   const isEventDay = new Date().toDateString() === new Date(event.eventDate).toDateString();
 
-  // Get available end times based on court schedules
-  const getAvailableEndTimes = () => {
+  // Get available times based on court schedules (hourly intervals)
+  const getAvailableTimes = () => {
     const times: string[] = [];
+    const allStartTimes: number[] = [];
+    const allEndTimes: number[] = [];
+
     event.courts.forEach(court => {
-      const start = new Date(`2000-01-01T${court.startTime}`);
-      const end = new Date(`2000-01-01T${court.endTime}`);
-      
-      // Generate 30-minute intervals from start to end
-      for (let time = new Date(start.getTime() + 30 * 60000); time <= end; time.setMinutes(time.getMinutes() + 30)) {
-        const timeString = time.toTimeString().slice(0, 5);
-        if (!times.includes(timeString)) {
-          times.push(timeString);
-        }
-      }
+      const start = new Date(`2000-01-01T${court.startTime}`).getTime();
+      const end = new Date(`2000-01-01T${court.endTime}`).getTime();
+      allStartTimes.push(start);
+      allEndTimes.push(end);
     });
-    return times.sort();
+
+    const earliestStart = Math.min(...allStartTimes);
+    const latestEnd = Math.max(...allEndTimes);
+
+    // Generate hourly intervals from earliest start to latest end
+    for (let time = earliestStart; time <= latestEnd; time += 60 * 60000) {
+      const timeString = new Date(time).toTimeString().slice(0, 5);
+      times.push(timeString);
+    }
+
+    return times;
   };
+
+  const availableTimes = getAvailableTimes();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!startTime || !endTime) {
+      toast({
+        title: "Error",
+        description: "Please select both start and end times",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (startTime >= endTime) {
+      toast({
+        title: "Error", 
+        description: "End time must be after start time",
+        variant: "destructive",
+      });
+      return;
+    }
+
     onRegister(event.id, {
       name: playerName,
-      email: '', // No longer required
+      email: '',
+      startTime,
       endTime,
     });
+    
     setPlayerName('');
+    setStartTime('');
     setEndTime('');
     setShowForm(false);
     
@@ -91,7 +125,7 @@ const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerR
             variant="secondary" 
             className={isFull ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}
           >
-            {isFull ? 'Full' : 'Available'}
+            {isFull ? t('status.full') : t('status.available')}
           </Badge>
         </div>
       </CardHeader>
@@ -116,7 +150,7 @@ const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerR
         {waitlistPlayers.length > 0 && (
           <div className="bg-yellow-50 p-2 rounded border border-yellow-200">
             <p className="text-xs text-yellow-800">
-              {waitlistPlayers.length} player(s) on waitlist
+              {waitlistPlayers.length} {t('status.waitlist')}
             </p>
           </div>
         )}
@@ -139,12 +173,12 @@ const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerR
             className="w-full bg-green-600 hover:bg-green-700 text-white"
             size="sm"
           >
-            {isFull ? 'Join Waitlist' : 'Register to Play'}
+            {isFull ? t('form.join_waitlist') : t('form.register')}
           </Button>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="playerName" className="text-gray-700">Your Name</Label>
+              <Label htmlFor="playerName" className="text-gray-700">{t('form.player_name')}</Label>
               <Input
                 id="playerName"
                 value={playerName}
@@ -155,20 +189,38 @@ const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerR
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="endTime" className="text-gray-700">Play Until</Label>
-              <Select value={endTime} onValueChange={setEndTime} required>
-                <SelectTrigger className="border-green-200 focus:border-green-500">
-                  <SelectValue placeholder="Select end time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {getAvailableEndTimes().map(time => (
-                    <SelectItem key={time} value={time}>
-                      {time}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <Label htmlFor="startTime" className="text-gray-700">{t('form.start_time')}</Label>
+                <Select value={startTime} onValueChange={setStartTime} required>
+                  <SelectTrigger className="border-green-200 focus:border-green-500">
+                    <SelectValue placeholder="Start" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-gray-200 z-50">
+                    {availableTimes.slice(0, -1).map(time => (
+                      <SelectItem key={time} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="endTime" className="text-gray-700">{t('form.end_time')}</Label>
+                <Select value={endTime} onValueChange={setEndTime} required>
+                  <SelectTrigger className="border-green-200 focus:border-green-500">
+                    <SelectValue placeholder="End" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-gray-200 z-50">
+                    {availableTimes.filter(time => !startTime || time > startTime).map(time => (
+                      <SelectItem key={time} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="flex gap-2">
@@ -177,7 +229,7 @@ const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerR
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                 size="sm"
               >
-                {isFull ? 'Join Waitlist' : 'Register'}
+                {isFull ? t('form.join_waitlist') : t('form.register')}
               </Button>
               <Button
                 type="button"
@@ -186,7 +238,7 @@ const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerR
                 className="flex-1 border-gray-300"
                 size="sm"
               >
-                Cancel
+                {t('form.cancel')}
               </Button>
             </div>
           </form>
@@ -194,13 +246,15 @@ const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerR
 
         {registeredPlayers.length > 0 && (
           <div className="space-y-2 max-h-32 overflow-y-auto">
-            <h4 className="font-medium text-gray-700 text-sm">Registered Players:</h4>
+            <h4 className="font-medium text-gray-700 text-sm">{t('players.registered')}:</h4>
             <div className="space-y-1">
               {registeredPlayers.map((player) => (
                 <div key={player.id} className="flex justify-between items-center text-xs bg-green-50 p-2 rounded">
                   <div>
                     <span className="font-medium">{player.name}</span>
-                    <span className="text-gray-500 ml-2">Until {player.endTime}</span>
+                    <span className="text-gray-500 ml-2">
+                      {player.startTime || '20:00'} - {player.endTime}
+                    </span>
                   </div>
                   <Button
                     onClick={() => handleCancelRegistration(player.id, player.name)}
@@ -218,13 +272,15 @@ const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerR
 
         {waitlistPlayers.length > 0 && (
           <div className="space-y-2 max-h-24 overflow-y-auto">
-            <h4 className="font-medium text-gray-700 text-sm">Waitlist:</h4>
+            <h4 className="font-medium text-gray-700 text-sm">{t('players.waitlist')}:</h4>
             <div className="space-y-1">
               {waitlistPlayers.map((player) => (
                 <div key={player.id} className="flex justify-between items-center text-xs bg-yellow-50 p-2 rounded">
                   <div>
                     <span className="font-medium">{player.name}</span>
-                    <span className="text-gray-500 ml-2">Until {player.endTime}</span>
+                    <span className="text-gray-500 ml-2">
+                      {player.startTime || '20:00'} - {player.endTime}
+                    </span>
                   </div>
                   <Button
                     onClick={() => handleCancelRegistration(player.id, player.name)}

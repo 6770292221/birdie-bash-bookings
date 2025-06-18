@@ -1,9 +1,10 @@
 
-import { Calendar, MapPin, Users, Clock, DollarSign } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Event, Player } from '@/pages/Index';
+import { Event } from '@/pages/Index';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface EventCardProps {
   event: Event;
@@ -11,14 +12,22 @@ interface EventCardProps {
   onCancelRegistration: (eventId: string, playerId: string, isEventDay: boolean) => void;
 }
 
-const EventCard = ({ event, onSelectEvent, onCancelRegistration }: EventCardProps) => {
+const EventCard = ({ event, onSelectEvent }: EventCardProps) => {
+  const { t } = useLanguage();
   const registeredPlayers = event.players.filter(p => p.status === 'registered');
   const waitlistPlayers = event.players.filter(p => p.status === 'waitlist');
+  const isFull = registeredPlayers.length >= event.maxPlayers;
+  const hasRegisteredPlayers = registeredPlayers.length > 0;
+
+  // Calculate total court hours for cost estimation
   const totalHours = event.courts.reduce((sum, court) => {
     const start = new Date(`2000-01-01T${court.startTime}`);
     const end = new Date(`2000-01-01T${court.endTime}`);
-    return sum + (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+    const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+    return sum + Math.max(0, hours);
   }, 0);
+
+  const estimatedCost = totalHours * event.courtHourlyRate;
 
   return (
     <Card className="bg-white/80 backdrop-blur-sm border-blue-200 hover:shadow-lg transition-all duration-200">
@@ -33,9 +42,9 @@ const EventCard = ({ event, onSelectEvent, onCancelRegistration }: EventCardProp
           </div>
           <Badge 
             variant="secondary" 
-            className="bg-green-100 text-green-800"
+            className={isFull ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}
           >
-            {event.status}
+            {isFull ? t('status.full') : t('status.available')}
           </Badge>
         </div>
       </CardHeader>
@@ -48,25 +57,25 @@ const EventCard = ({ event, onSelectEvent, onCancelRegistration }: EventCardProp
 
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div className="flex items-center">
-            <Users className="w-4 h-4 mr-2 text-blue-600" />
+            <Users className="w-4 h-4 mr-2 text-green-600" />
             <span>{registeredPlayers.length}/{event.maxPlayers}</span>
           </div>
           <div className="flex items-center">
-            <Clock className="w-4 h-4 mr-2 text-green-600" />
-            <span>{event.courts.length} courts</span>
+            <Clock className="w-4 h-4 mr-2 text-blue-600" />
+            <span>{totalHours}h • ฿{estimatedCost}</span>
           </div>
         </div>
 
         {waitlistPlayers.length > 0 && (
           <div className="bg-yellow-50 p-2 rounded border border-yellow-200">
             <p className="text-xs text-yellow-800">
-              {waitlistPlayers.length} player(s) on waitlist
+              {waitlistPlayers.length} {t('status.waitlist')}
             </p>
           </div>
         )}
 
         <div className="space-y-2">
-          <h4 className="font-medium text-gray-700">Courts & Times:</h4>
+          <h4 className="font-medium text-gray-700">Courts:</h4>
           <div className="space-y-1">
             {event.courts.map((court, index) => (
               <div key={index} className="flex justify-between text-xs bg-gray-50 p-2 rounded">
@@ -77,35 +86,33 @@ const EventCard = ({ event, onSelectEvent, onCancelRegistration }: EventCardProp
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-sm text-gray-600 bg-blue-50 p-2 rounded">
-          <span>Est. Cost/Player:</span>
-          <span className="font-medium">
-            ฿{Math.round(((totalHours * event.courtHourlyRate) / Math.max(registeredPlayers.length, 1)) + event.shuttlecockPrice)}
-          </span>
-        </div>
-
-        <div className="space-y-2 max-h-32 overflow-y-auto">
-          <h4 className="font-medium text-gray-700">Registered Players:</h4>
-          {registeredPlayers.length > 0 ? (
-            <div className="space-y-1">
+        {registeredPlayers.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="font-medium text-gray-700 text-sm">{t('players.registered')} ({registeredPlayers.length}):</h4>
+            <div className="space-y-1 max-h-20 overflow-y-auto">
               {registeredPlayers.map((player) => (
-                <div key={player.id} className="flex justify-between items-center text-xs bg-green-50 p-2 rounded">
-                  <span>{player.name}</span>
-                  <span className="text-gray-500">Until {player.endTime}</span>
+                <div key={player.id} className="text-xs bg-green-50 p-1 rounded">
+                  <span className="font-medium">{player.name}</span>
+                  <span className="text-gray-500 ml-2">
+                    {player.startTime || '20:00'} - {player.endTime}
+                  </span>
                 </div>
               ))}
             </div>
-          ) : (
-            <p className="text-xs text-gray-500 italic">No players registered yet</p>
-          )}
-        </div>
+          </div>
+        )}
 
         <Button
           onClick={() => onSelectEvent(event)}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+          disabled={!hasRegisteredPlayers}
+          className={`w-full ${hasRegisteredPlayers 
+            ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
           size="sm"
         >
-          Manage Event
+          <Calculator className="w-4 h-4 mr-2" />
+          {t('button.calculate_costs')}
         </Button>
       </CardContent>
     </Card>
