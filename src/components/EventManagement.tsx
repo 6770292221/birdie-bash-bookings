@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Calculator, Clock, DollarSign, Edit2, Save, X } from 'lucide-react';
+import { Calculator, Clock, DollarSign, Edit2, Save, X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,6 +41,25 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
       [field]: value
     };
     setActualCourts(updatedCourts);
+  };
+
+  const addNewCourt = () => {
+    const newCourtNumber = Math.max(...actualCourts.map(c => c.courtNumber)) + 1;
+    const newCourt: Court = {
+      courtNumber: newCourtNumber,
+      startTime: '20:00',
+      endTime: '22:00',
+      actualStartTime: '20:00',
+      actualEndTime: '22:00'
+    };
+    setActualCourts([...actualCourts, newCourt]);
+  };
+
+  const removeCourt = (courtIndex: number) => {
+    if (actualCourts.length > 1) {
+      const updatedCourts = actualCourts.filter((_, index) => index !== courtIndex);
+      setActualCourts(updatedCourts);
+    }
   };
 
   const calculateCosts = () => {
@@ -141,17 +160,37 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                   <Clock className="w-5 h-5 mr-2" />
                   Actual Court Usage
                 </CardTitle>
-                {!isEditing && (
-                  <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
-                    <Edit2 className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  {!isEditing && (
+                    <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                  )}
+                  {isEditing && (
+                    <Button onClick={addNewCourt} variant="outline" size="sm">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Court
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {actualCourts.map((court, index) => (
                   <div key={index} className="border border-gray-200 p-3 rounded">
-                    <h4 className="font-medium mb-2">Court {court.courtNumber}</h4>
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-medium">Court {court.courtNumber}</h4>
+                      {isEditing && actualCourts.length > 1 && (
+                        <Button 
+                          onClick={() => removeCourt(index)} 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                     <div className="text-sm text-gray-600 mb-2">
                       Reserved: {court.startTime} - {court.endTime}
                     </div>
