@@ -190,16 +190,16 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
       return new Date(`2000-01-01T${endTime}`).getTime();
     }));
 
-    // Calculate shuttlecock cost per player
+    // Calculate shuttlecock cost per player (only for registered players)
     const shuttlecockCost = shuttlecocksUsed * event.shuttlecockPrice;
     const shuttlecockCostPerPlayer = currentRegisteredPlayers.length > 0 ? shuttlecockCost / currentRegisteredPlayers.length : 0;
 
-    // Calculate late cancel and absent fines
-    const totalFine = currentCancelledOnEventDay.length * 100 + absentPlayers.size * 100;
-    const finePerPlayer = currentRegisteredPlayers.length > 0 ? totalFine / currentRegisteredPlayers.length : 0;
+    // Calculate absent fines (only for registered players)
+    const absentFine = absentPlayers.size * 100;
+    const absentFinePerPlayer = currentRegisteredPlayers.length > 0 ? absentFine / currentRegisteredPlayers.length : 0;
 
-    // Calculate individual costs for each player
-    const breakdown: CostBreakdown[] = currentRegisteredPlayers.map(player => {
+    // Calculate individual costs for registered players
+    const registeredPlayersBreakdown: CostBreakdown[] = currentRegisteredPlayers.map(player => {
       const playerStartTime = new Date(`2000-01-01T${player.startTime || '20:00'}`).getTime();
       const playerEndTime = new Date(`2000-01-01T${player.endTime}`).getTime();
       let courtFee = 0;
@@ -228,7 +228,7 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
       }
 
       const shuttlecockFee = Math.round(shuttlecockCostPerPlayer * 100) / 100;
-      const fine = Math.round(finePerPlayer * 100) / 100;
+      const fine = Math.round(absentFinePerPlayer * 100) / 100;
       const total = Math.round((courtFee + shuttlecockFee + fine) * 100) / 100;
       
       return {
@@ -243,6 +243,22 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
         hourlyBreakdown
       };
     });
+
+    // Calculate costs for same-day cancelled players (they only pay the 100 THB fine)
+    const cancelledPlayersBreakdown: CostBreakdown[] = currentCancelledOnEventDay.map(player => ({
+      name: player.name,
+      playerId: player.id,
+      startTime: player.startTime || '20:00',
+      endTime: player.endTime,
+      courtFee: 0,
+      shuttlecockFee: 0,
+      fine: 100,
+      total: 100,
+      hourlyBreakdown: []
+    }));
+
+    // Combine both breakdowns
+    const breakdown = [...registeredPlayersBreakdown, ...cancelledPlayersBreakdown];
 
     setCostBreakdown(breakdown);
     
