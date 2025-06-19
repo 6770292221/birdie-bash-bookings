@@ -23,6 +23,7 @@ interface CostBreakdown {
   shuttlecockFee: number;
   fine: number;
   total: number;
+  hourlyBreakdown?: { hour: string; cost: number }[];
 }
 
 const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps) => {
@@ -115,56 +116,73 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
     const currentRegisteredPlayers = editingPlayers.filter(p => p.status === 'registered');
     const currentCancelledOnEventDay = editingPlayers.filter(p => p.status === 'cancelled' && p.cancelledOnEventDay);
 
-    // Calculate total court cost based on actual usage
-    const courtCostTotal = actualCourts.reduce((sum, court) => {
-      const startTime = court.actualStartTime || court.startTime;
-      const endTime = court.actualEndTime || court.endTime;
-      const start = new Date(`2000-01-01T${startTime}`);
-      const end = new Date(`2000-01-01T${endTime}`);
-      const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-      return sum + (hours * event.courtHourlyRate);
-    }, 0);
-
-    // Calculate total player hours
+    // Get event start time from the earliest court start
     const eventStartTime = Math.min(...actualCourts.map(court => {
       const startTime = court.actualStartTime || court.startTime;
       return new Date(`2000-01-01T${startTime}`).getTime();
     }));
 
-    const totalPlayerHours = currentRegisteredPlayers.reduce((sum, player) => {
-      const playerEndTime = new Date(`2000-01-01T${player.endTime}`).getTime();
-      const playerHours = (playerEndTime - eventStartTime) / (1000 * 60 * 60);
-      return sum + Math.max(0, playerHours);
-    }, 0);
+    // Get event end time from the latest court end
+    const eventEndTime = Math.max(...actualCourts.map(court => {
+      const endTime = court.actualEndTime || court.endTime;
+      return new Date(`2000-01-01T${endTime}`).getTime();
+    }));
 
-    // Calculate shuttlecock cost
+    // Generate hourly time slots
+    const timeSlots: string[] = [];
+    for (let time = eventStartTime; time < eventEndTime; time += 60 * 60000) {
+      const hourStart = new Date(time).toTimeString().slice(0, 5);
+      const hourEnd = new Date(time + 60 * 60000).toTimeString().slice(0, 5);
+      timeSlots.push(`${hourStart} - ${hourEnd}`);
+    }
+
+    // Calculate shuttlecock cost per player
     const shuttlecockCost = shuttlecocksUsed * event.shuttlecockPrice;
-    const shuttlecockCostPerPlayer = shuttlecockCost / currentRegisteredPlayers.length;
+    const shuttlecockCostPerPlayer = currentRegisteredPlayers.length > 0 ? shuttlecockCost / currentRegisteredPlayers.length : 0;
 
-    // Calculate late cancel fine total
+    // Calculate late cancel and absent fines
     const totalFine = currentCancelledOnEventDay.length * 100 + absentPlayers.size * 100;
-    const finePerPlayer = totalFine / currentRegisteredPlayers.length;
+    const finePerPlayer = currentRegisteredPlayers.length > 0 ? totalFine / currentRegisteredPlayers.length : 0;
 
-    // Calculate individual costs
+    // Calculate individual costs for each player
     const breakdown: CostBreakdown[] = currentRegisteredPlayers.map(player => {
       const playerEndTime = new Date(`2000-01-01T${player.endTime}`).getTime();
-      const playerHours = Math.max(0, (playerEndTime - eventStartTime) / (1000 * 60 * 60));
-      
-      const individualCourtCost = totalPlayerHours > 0 
-        ? (playerHours / totalPlayerHours) * courtCostTotal 
-        : courtCostTotal / currentRegisteredPlayers.length;
+      let courtFee = 0;
+      const hourlyBreakdown: { hour: string; cost: number }[] = [];
 
-      const courtFee = Math.round(individualCourtCost);
-      const shuttlecockFee = Math.round(shuttlecockCostPerPlayer);
-      const fine = Math.round(finePerPlayer);
+      // Calculate cost for each hour the player participates
+      for (let time = eventStartTime; time < Math.min(eventEndTime, playerEndTime); time += 60 * 60000) {
+        const hourStart = new Date(time).toTimeString().slice(0, 5);
+        const hourEnd = new Date(time + 60 * 60000).toTimeString().slice(0, 5);
+        
+        // Count how many players are playing in this hour
+        const playersInThisHour = currentRegisteredPlayers.filter(p => {
+          const pEndTime = new Date(`2000-01-01T${p.endTime}`).getTime();
+          return pEndTime > time;
+        }).length;
+
+        if (playersInThisHour > 0) {
+          const hourCost = event.courtHourlyRate / playersInThisHour;
+          courtFee += hourCost;
+          hourlyBreakdown.push({
+            hour: `${hourStart} - ${hourEnd}`,
+            cost: hourCost
+          });
+        }
+      }
+
+      const shuttlecockFee = Math.round(shuttlecockCostPerPlayer * 100) / 100;
+      const fine = Math.round(finePerPlayer * 100) / 100;
+      const total = Math.round((courtFee + shuttlecockFee + fine) * 100) / 100;
       
       return {
         name: player.name,
         playerId: player.id,
-        courtFee,
+        courtFee: Math.round(courtFee * 100) / 100,
         shuttlecockFee,
         fine,
-        total: courtFee + shuttlecockFee + fine
+        total,
+        hourlyBreakdown
       };
     });
 
@@ -172,7 +190,7 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
     
     toast({
       title: "Cost Calculation Complete",
-      description: `Total cost: ฿${breakdown.reduce((sum, item) => sum + item.total, 0)}`,
+      description: `Total cost: ฿${breakdown.reduce((sum, item) => sum + item.total, 0).toFixed(2)}`,
     });
   };
 
@@ -455,36 +473,59 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
             </CardHeader>
             <CardContent>
               {costBreakdown.length > 0 && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-2">Player</th>
-                        <th className="text-right p-2">Court Fee</th>
-                        <th className="text-right p-2">Shuttlecock</th>
-                        <th className="text-right p-2">Fine</th>
-                        <th className="text-right p-2 font-bold">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {costBreakdown.map((item, index) => (
-                        <tr key={index} className="border-b">
-                          <td className="p-2">{item.name}</td>
-                          <td className="text-right p-2">฿{item.courtFee}</td>
-                          <td className="text-right p-2">฿{item.shuttlecockFee}</td>
-                          <td className="text-right p-2">฿{item.fine}</td>
-                          <td className="text-right p-2 font-bold">฿{item.total}</td>
+                <div className="space-y-4">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-2">Player</th>
+                          <th className="text-right p-2">Court Fee</th>
+                          <th className="text-right p-2">Shuttlecock</th>
+                          <th className="text-right p-2">Fine</th>
+                          <th className="text-right p-2 font-bold">Total</th>
                         </tr>
+                      </thead>
+                      <tbody>
+                        {costBreakdown.map((item, index) => (
+                          <tr key={index} className="border-b">
+                            <td className="p-2">{item.name}</td>
+                            <td className="text-right p-2">฿{item.courtFee}</td>
+                            <td className="text-right p-2">฿{item.shuttlecockFee}</td>
+                            <td className="text-right p-2">฿{item.fine}</td>
+                            <td className="text-right p-2 font-bold">฿{item.total}</td>
+                          </tr>
+                        ))}
+                        <tr className="border-t-2 border-gray-400 font-bold">
+                          <td className="p-2">Total</td>
+                          <td className="text-right p-2">฿{costBreakdown.reduce((sum, item) => sum + item.courtFee, 0).toFixed(2)}</td>
+                          <td className="text-right p-2">฿{costBreakdown.reduce((sum, item) => sum + item.shuttlecockFee, 0).toFixed(2)}</td>
+                          <td className="text-right p-2">฿{costBreakdown.reduce((sum, item) => sum + item.fine, 0).toFixed(2)}</td>
+                          <td className="text-right p-2">฿{costBreakdown.reduce((sum, item) => sum + item.total, 0).toFixed(2)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {costBreakdown.some(item => item.hourlyBreakdown && item.hourlyBreakdown.length > 0) && (
+                    <div className="mt-4">
+                      <h4 className="font-medium mb-2">Hourly Breakdown:</h4>
+                      {costBreakdown.map((item, playerIndex) => (
+                        item.hourlyBreakdown && item.hourlyBreakdown.length > 0 && (
+                          <div key={playerIndex} className="mb-3 p-3 border border-gray-200 rounded">
+                            <h5 className="font-medium text-sm mb-2">{item.name}</h5>
+                            <div className="space-y-1">
+                              {item.hourlyBreakdown.map((hour, hourIndex) => (
+                                <div key={hourIndex} className="flex justify-between text-xs">
+                                  <span>{hour.hour}</span>
+                                  <span>฿{hour.cost.toFixed(2)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )
                       ))}
-                      <tr className="border-t-2 border-gray-400 font-bold">
-                        <td className="p-2">Total</td>
-                        <td className="text-right p-2">฿{costBreakdown.reduce((sum, item) => sum + item.courtFee, 0)}</td>
-                        <td className="text-right p-2">฿{costBreakdown.reduce((sum, item) => sum + item.shuttlecockFee, 0)}</td>
-                        <td className="text-right p-2">฿{costBreakdown.reduce((sum, item) => sum + item.fine, 0)}</td>
-                        <td className="text-right p-2">฿{costBreakdown.reduce((sum, item) => sum + item.total, 0)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
