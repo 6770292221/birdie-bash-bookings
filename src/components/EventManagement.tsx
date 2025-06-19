@@ -69,6 +69,24 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
 
   const availableTimes = getAvailableTimes();
 
+  // Get valid start times for a player (must be before their end time)
+  const getValidStartTimes = (playerEndTime: string) => {
+    const endTime = new Date(`2000-01-01T${playerEndTime}`).getTime();
+    return availableTimes.filter(time => {
+      const timeMs = new Date(`2000-01-01T${time}`).getTime();
+      return timeMs < endTime;
+    });
+  };
+
+  // Get valid end times for a player (must be after their start time)
+  const getValidEndTimes = (playerStartTime: string) => {
+    const startTime = new Date(`2000-01-01T${playerStartTime}`).getTime();
+    return availableTimes.filter(time => {
+      const timeMs = new Date(`2000-01-01T${time}`).getTime();
+      return timeMs > startTime;
+    });
+  };
+
   const handleCourtTimeChange = (courtIndex: number, field: 'actualStartTime' | 'actualEndTime', value: string) => {
     const updatedCourts = [...actualCourts];
     updatedCourts[courtIndex] = {
@@ -78,10 +96,44 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
     setActualCourts(updatedCourts);
   };
 
-  const handlePlayerChange = (playerId: string, field: 'name' | 'endTime', value: string) => {
-    const updatedPlayers = editingPlayers.map(player => 
-      player.id === playerId ? { ...player, [field]: value } : player
-    );
+  const handlePlayerChange = (playerId: string, field: 'name' | 'startTime' | 'endTime', value: string) => {
+    const updatedPlayers = editingPlayers.map(player => {
+      if (player.id === playerId) {
+        const updatedPlayer = { ...player, [field]: value };
+        
+        // If changing start time, ensure end time is still valid
+        if (field === 'startTime') {
+          const startTime = new Date(`2000-01-01T${value}`).getTime();
+          const endTime = new Date(`2000-01-01T${player.endTime}`).getTime();
+          
+          if (startTime >= endTime) {
+            // Find the next available end time after the new start time
+            const validEndTimes = getValidEndTimes(value);
+            if (validEndTimes.length > 0) {
+              updatedPlayer.endTime = validEndTimes[0];
+            }
+          }
+        }
+        
+        // If changing end time, ensure start time is still valid
+        if (field === 'endTime') {
+          const playerStartTime = player.startTime || '20:00';
+          const startTime = new Date(`2000-01-01T${playerStartTime}`).getTime();
+          const endTime = new Date(`2000-01-01T${value}`).getTime();
+          
+          if (startTime >= endTime) {
+            // Find the latest available start time before the new end time
+            const validStartTimes = getValidStartTimes(value);
+            if (validStartTimes.length > 0) {
+              updatedPlayer.startTime = validStartTimes[validStartTimes.length - 1];
+            }
+          }
+        }
+        
+        return updatedPlayer;
+      }
+      return player;
+    });
     setEditingPlayers(updatedPlayers);
   };
 
@@ -403,23 +455,43 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                                 className="h-8 text-sm"
                               />
                             </div>
-                            <div>
-                              <Label className="text-xs">End Time</Label>
-                              <Select 
-                                value={player.endTime} 
-                                onValueChange={(value) => handlePlayerChange(player.id, 'endTime', value)}
-                              >
-                                <SelectTrigger className="h-8 text-sm">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {availableTimes.map(time => (
-                                    <SelectItem key={time} value={time}>
-                                      {time}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <Label className="text-xs">Start Time</Label>
+                                <Select 
+                                  value={player.startTime || '20:00'} 
+                                  onValueChange={(value) => handlePlayerChange(player.id, 'startTime', value)}
+                                >
+                                  <SelectTrigger className="h-8 text-sm">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-white border shadow-lg z-[60]">
+                                    {getValidStartTimes(player.endTime).map(time => (
+                                      <SelectItem key={time} value={time}>
+                                        {time}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <Label className="text-xs">End Time</Label>
+                                <Select 
+                                  value={player.endTime} 
+                                  onValueChange={(value) => handlePlayerChange(player.id, 'endTime', value)}
+                                >
+                                  <SelectTrigger className="h-8 text-sm">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-white border shadow-lg z-[60]">
+                                    {getValidEndTimes(player.startTime || '20:00').map(time => (
+                                      <SelectItem key={time} value={time}>
+                                        {time}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </div>
                           </div>
                         ) : (
@@ -549,7 +621,7 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                                   <SelectTrigger className="h-8 text-xs w-20">
                                     <SelectValue />
                                   </SelectTrigger>
-                                  <SelectContent>
+                                  <SelectContent className="bg-white border shadow-lg z-[60]">
                                     {availableTimes.map(time => (
                                       <SelectItem key={time} value={time}>
                                         {time}
@@ -570,7 +642,7 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                                   <SelectTrigger className="h-8 text-xs w-20">
                                     <SelectValue />
                                   </SelectTrigger>
-                                  <SelectContent>
+                                  <SelectContent className="bg-white border shadow-lg z-[60]">
                                     {availableTimes.map(time => (
                                       <SelectItem key={time} value={time}>
                                         {time}
