@@ -19,6 +19,8 @@ interface EventManagementProps {
 interface CostBreakdown {
   name: string;
   playerId: string;
+  startTime: string;
+  endTime: string;
   courtFee: number;
   shuttlecockFee: number;
   fine: number;
@@ -31,6 +33,7 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
   const [shuttlecocksUsed, setShuttlecocksUsed] = useState(event.shuttlecocksUsed || 0);
   const [isEditing, setIsEditing] = useState(false);
   const [isEditingPlayers, setIsEditingPlayers] = useState(false);
+  const [isEditingCostPlayers, setIsEditingCostPlayers] = useState(false);
   const [editingPlayers, setEditingPlayers] = useState<Player[]>(event.players);
   const [absentPlayers, setAbsentPlayers] = useState<Set<string>>(new Set());
   const [costBreakdown, setCostBreakdown] = useState<CostBreakdown[]>([]);
@@ -111,6 +114,13 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
     }
   };
 
+  const handleCostPlayerTimeChange = (playerId: string, field: 'startTime' | 'endTime', value: string) => {
+    const updatedBreakdown = costBreakdown.map(item => 
+      item.playerId === playerId ? { ...item, [field]: value } : item
+    );
+    setCostBreakdown(updatedBreakdown);
+  };
+
   const calculateCosts = () => {
     // Use the current registered players from editingPlayers
     const currentRegisteredPlayers = editingPlayers.filter(p => p.status === 'registered');
@@ -128,14 +138,6 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
       return new Date(`2000-01-01T${endTime}`).getTime();
     }));
 
-    // Generate hourly time slots
-    const timeSlots: string[] = [];
-    for (let time = eventStartTime; time < eventEndTime; time += 60 * 60000) {
-      const hourStart = new Date(time).toTimeString().slice(0, 5);
-      const hourEnd = new Date(time + 60 * 60000).toTimeString().slice(0, 5);
-      timeSlots.push(`${hourStart} - ${hourEnd}`);
-    }
-
     // Calculate shuttlecock cost per player
     const shuttlecockCost = shuttlecocksUsed * event.shuttlecockPrice;
     const shuttlecockCostPerPlayer = currentRegisteredPlayers.length > 0 ? shuttlecockCost / currentRegisteredPlayers.length : 0;
@@ -146,19 +148,21 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
 
     // Calculate individual costs for each player
     const breakdown: CostBreakdown[] = currentRegisteredPlayers.map(player => {
+      const playerStartTime = new Date(`2000-01-01T${player.startTime || '20:00'}`).getTime();
       const playerEndTime = new Date(`2000-01-01T${player.endTime}`).getTime();
       let courtFee = 0;
       const hourlyBreakdown: { hour: string; cost: number }[] = [];
 
       // Calculate cost for each hour the player participates
-      for (let time = eventStartTime; time < Math.min(eventEndTime, playerEndTime); time += 60 * 60000) {
+      for (let time = Math.max(eventStartTime, playerStartTime); time < Math.min(eventEndTime, playerEndTime); time += 60 * 60000) {
         const hourStart = new Date(time).toTimeString().slice(0, 5);
         const hourEnd = new Date(time + 60 * 60000).toTimeString().slice(0, 5);
         
         // Count how many players are playing in this hour
         const playersInThisHour = currentRegisteredPlayers.filter(p => {
+          const pStartTime = new Date(`2000-01-01T${p.startTime || '20:00'}`).getTime();
           const pEndTime = new Date(`2000-01-01T${p.endTime}`).getTime();
-          return pEndTime > time;
+          return pStartTime <= time && pEndTime > time;
         }).length;
 
         if (playersInThisHour > 0) {
@@ -178,6 +182,8 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
       return {
         name: player.name,
         playerId: player.id,
+        startTime: player.startTime || '20:00',
+        endTime: player.endTime,
         courtFee: Math.round(courtFee * 100) / 100,
         shuttlecockFee,
         fine,
@@ -217,6 +223,35 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
     toast({
       title: "Players Updated",
       description: "Player information saved successfully",
+    });
+  };
+
+  const handleSaveCostPlayerTimes = () => {
+    // Update the actual players with the new times from cost breakdown
+    const updatedPlayers = editingPlayers.map(player => {
+      const costPlayer = costBreakdown.find(cp => cp.playerId === player.id);
+      if (costPlayer && player.status === 'registered') {
+        return {
+          ...player,
+          startTime: costPlayer.startTime,
+          endTime: costPlayer.endTime
+        };
+      }
+      return player;
+    });
+
+    onUpdateEvent(event.id, {
+      players: updatedPlayers
+    });
+    setEditingPlayers(updatedPlayers);
+    setIsEditingCostPlayers(false);
+    
+    // Recalculate costs with updated times
+    calculateCosts();
+    
+    toast({
+      title: "Player Times Updated",
+      description: "Player start and end times updated successfully",
     });
   };
 
@@ -398,7 +433,7 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                                 </Badge>
                               )}
                             </div>
-                            <span>Until {player.endTime}</span>
+                            <span>{player.startTime || '20:00'} - {player.endTime}</span>
                           </div>
                         )}
                       </div>
@@ -467,9 +502,23 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                 <Calculator className="w-5 h-5 mr-2" />
                 Cost Calculation
               </CardTitle>
-              <Button onClick={calculateCosts} className="bg-blue-600 hover:bg-blue-700">
-                Calculate Costs
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={calculateCosts} className="bg-blue-600 hover:bg-blue-700">
+                  Calculate Costs
+                </Button>
+                {costBreakdown.length > 0 && !isEditingCostPlayers && (
+                  <Button onClick={() => setIsEditingCostPlayers(true)} variant="outline" size="sm">
+                    <Edit2 className="w-4 h-4 mr-2" />
+                    Edit Times
+                  </Button>
+                )}
+                {isEditingCostPlayers && (
+                  <Button onClick={handleSaveCostPlayerTimes} variant="outline" size="sm">
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Times
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {costBreakdown.length > 0 && (
@@ -479,6 +528,8 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                       <thead>
                         <tr className="border-b">
                           <th className="text-left p-2">Player</th>
+                          <th className="text-center p-2">Start Time</th>
+                          <th className="text-center p-2">End Time</th>
                           <th className="text-right p-2">Court Fee</th>
                           <th className="text-right p-2">Shuttlecock</th>
                           <th className="text-right p-2">Fine</th>
@@ -489,6 +540,48 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                         {costBreakdown.map((item, index) => (
                           <tr key={index} className="border-b">
                             <td className="p-2">{item.name}</td>
+                            <td className="text-center p-2">
+                              {isEditingCostPlayers ? (
+                                <Select
+                                  value={item.startTime}
+                                  onValueChange={(value) => handleCostPlayerTimeChange(item.playerId, 'startTime', value)}
+                                >
+                                  <SelectTrigger className="h-8 text-xs w-20">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {availableTimes.map(time => (
+                                      <SelectItem key={time} value={time}>
+                                        {time}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                item.startTime
+                              )}
+                            </td>
+                            <td className="text-center p-2">
+                              {isEditingCostPlayers ? (
+                                <Select
+                                  value={item.endTime}
+                                  onValueChange={(value) => handleCostPlayerTimeChange(item.playerId, 'endTime', value)}
+                                >
+                                  <SelectTrigger className="h-8 text-xs w-20">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {availableTimes.map(time => (
+                                      <SelectItem key={time} value={time}>
+                                        {time}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                item.endTime
+                              )}
+                            </td>
                             <td className="text-right p-2">฿{item.courtFee}</td>
                             <td className="text-right p-2">฿{item.shuttlecockFee}</td>
                             <td className="text-right p-2">฿{item.fine}</td>
@@ -496,7 +589,7 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                           </tr>
                         ))}
                         <tr className="border-t-2 border-gray-400 font-bold">
-                          <td className="p-2">Total</td>
+                          <td className="p-2" colSpan={3}>Total</td>
                           <td className="text-right p-2">฿{costBreakdown.reduce((sum, item) => sum + item.courtFee, 0).toFixed(2)}</td>
                           <td className="text-right p-2">฿{costBreakdown.reduce((sum, item) => sum + item.shuttlecockFee, 0).toFixed(2)}</td>
                           <td className="text-right p-2">฿{costBreakdown.reduce((sum, item) => sum + item.fine, 0).toFixed(2)}</td>
@@ -506,13 +599,32 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                     </table>
                   </div>
 
+                  {isEditingCostPlayers && (
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button onClick={handleSaveCostPlayerTimes} className="flex-1">
+                        <Save className="w-4 h-4 mr-2" />
+                        Save Time Changes
+                      </Button>
+                      <Button 
+                        onClick={() => {
+                          setIsEditingCostPlayers(false);
+                          calculateCosts(); // Recalculate to reset any unsaved changes
+                        }} 
+                        variant="outline" 
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+
                   {costBreakdown.some(item => item.hourlyBreakdown && item.hourlyBreakdown.length > 0) && (
                     <div className="mt-4">
                       <h4 className="font-medium mb-2">Hourly Breakdown:</h4>
                       {costBreakdown.map((item, playerIndex) => (
                         item.hourlyBreakdown && item.hourlyBreakdown.length > 0 && (
                           <div key={playerIndex} className="mb-3 p-3 border border-gray-200 rounded">
-                            <h5 className="font-medium text-sm mb-2">{item.name}</h5>
+                            <h5 className="font-medium text-sm mb-2">{item.name} ({item.startTime} - {item.endTime})</h5>
                             <div className="space-y-1">
                               {item.hourlyBreakdown.map((hour, hourIndex) => (
                                 <div key={hourIndex} className="flex justify-between text-xs">
