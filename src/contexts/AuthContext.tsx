@@ -29,6 +29,18 @@ const MOCK_ADMIN = {
   }
 };
 
+// Mock regular user credentials
+const MOCK_USER = {
+  email: 'user@badminton.com',
+  password: 'user123',
+  user: {
+    id: '2',
+    email: 'user@badminton.com',
+    role: 'user' as const,
+    name: 'Regular User'
+  }
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
@@ -38,6 +50,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(MOCK_ADMIN.user);
       return true;
     }
+    
+    if (email === MOCK_USER.email && password === MOCK_USER.password) {
+      setUser(MOCK_USER.user);
+      return true;
+    }
+    
     return false;
   };
 

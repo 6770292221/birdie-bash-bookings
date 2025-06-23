@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,10 +49,17 @@ const LoginForm = () => {
             เข้าสู่ระบบ
           </CardTitle>
           <p className="text-gray-600">เข้าสู่ระบบเพื่อจองคอร์ทแบดมินตัน</p>
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-700 font-medium">Demo Admin Login:</p>
-            <p className="text-xs text-blue-600">Email: admin@badminton.com</p>
-            <p className="text-xs text-blue-600">Password: admin123</p>
+          <div className="mt-4 space-y-3">
+            <div className="p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-700 font-medium">Demo Admin Login:</p>
+              <p className="text-xs text-blue-600">Email: admin@badminton.com</p>
+              <p className="text-xs text-blue-600">Password: admin123</p>
+            </div>
+            <div className="p-3 bg-green-50 rounded-lg">
+              <p className="text-sm text-green-700 font-medium">Demo User Login:</p>
+              <p className="text-xs text-green-600">Email: user@badminton.com</p>
+              <p className="text-xs text-green-600">Password: user123</p>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
