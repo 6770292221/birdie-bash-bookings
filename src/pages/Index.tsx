@@ -1,15 +1,18 @@
-
 import { useState } from 'react';
-import { Calendar, MapPin, Users, Clock, Plus } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Plus, LogOut, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import CreateEventForm from '@/components/CreateEventForm';
 import EventCard from '@/components/EventCard';
 import PlayerRegistration from '@/components/PlayerRegistration';
 import EventManagement from '@/components/EventManagement';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import AuthButtons from '@/components/AuthButtons';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
 export interface Court {
   courtNumber: number;
@@ -47,6 +50,7 @@ export interface Event {
 
 const IndexContent = () => {
   const { t } = useLanguage();
+  const { user, logout, isAdmin } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -133,7 +137,19 @@ const IndexContent = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-between items-center mb-4">
-            <div className="flex-1"></div>
+            <div className="flex-1">
+              {user && (
+                <div className="flex items-center gap-2">
+                  {isAdmin && (
+                    <Badge variant="destructive" className="flex items-center gap-1">
+                      <Shield className="w-3 h-3" />
+                      Admin
+                    </Badge>
+                  )}
+                  <span className="text-sm text-gray-600">สวัสดี, {user.name}</span>
+                </div>
+              )}
+            </div>
             <div className="flex-1 text-center">
               <h1 className="text-4xl font-bold text-gray-900 mb-2">
                 {t('app.title')}
@@ -142,11 +158,41 @@ const IndexContent = () => {
                 {t('app.subtitle')}
               </p>
             </div>
-            <div className="flex-1 flex justify-end">
+            <div className="flex-1 flex justify-end items-center gap-2">
               <LanguageSwitcher />
+              {user ? (
+                <Button onClick={logout} variant="outline" size="sm">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  ออกจากระบบ
+                </Button>
+              ) : (
+                <AuthButtons />
+              )}
             </div>
           </div>
         </div>
+
+        {/* Admin Access Notice */}
+        {!isAdmin && (
+          <Card className="mb-6 border-amber-200 bg-amber-50">
+            <CardContent className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-3">
+                <Shield className="w-5 h-5 text-amber-600" />
+                <div>
+                  <p className="font-medium text-amber-800">การจัดการอีเวนต์สำหรับแอดมินเท่านั้น</p>
+                  <p className="text-sm text-amber-600">กรุณาเข้าสู่ระบบด้วยบัญชีแอดมินเพื่อจัดการอีเวนต์</p>
+                </div>
+              </div>
+              {!user && (
+                <Link to="/login">
+                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700">
+                    เข้าสู่ระบบ
+                  </Button>
+                </Link>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -199,7 +245,7 @@ const IndexContent = () => {
         <Tabs defaultValue="events" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2 bg-white/70 backdrop-blur-sm">
             <TabsTrigger value="events" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-              {t('events.management')}
+              {isAdmin ? t('events.management') : 'ดูอีเวนต์'}
             </TabsTrigger>
             <TabsTrigger value="registration" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
               {t('registration')}
@@ -208,17 +254,21 @@ const IndexContent = () => {
 
           <TabsContent value="events" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold text-gray-900">{t('events.management')}</h2>
-              <Button 
-                onClick={() => setShowCreateForm(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                {t('events.create')}
-              </Button>
+              <h2 className="text-2xl font-semibold text-gray-900">
+                {isAdmin ? t('events.management') : 'อีเวนต์ที่กำลังจะมาถึง'}
+              </h2>
+              {isAdmin && (
+                <Button 
+                  onClick={() => setShowCreateForm(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t('events.create')}
+                </Button>
+              )}
             </div>
 
-            {showCreateForm && (
+            {isAdmin && showCreateForm && (
               <CreateEventForm
                 onSubmit={handleCreateEvent}
                 onCancel={() => setShowCreateForm(false)}
@@ -230,8 +280,9 @@ const IndexContent = () => {
                 <EventCard
                   key={event.id}
                   event={event}
-                  onSelectEvent={handleSelectEvent}
-                  onCancelRegistration={handleCancelRegistration}
+                  onSelectEvent={isAdmin ? handleSelectEvent : undefined}
+                  onCancelRegistration={isAdmin ? handleCancelRegistration : undefined}
+                  showAdminFeatures={isAdmin}
                 />
               ))}
             </div>
@@ -242,13 +293,15 @@ const IndexContent = () => {
                   <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-gray-600 mb-2">{t('events.no_events')}</h3>
                   <p className="text-gray-500 mb-4">{t('events.no_events_desc')}</p>
-                  <Button 
-                    onClick={() => setShowCreateForm(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    {t('events.create')}
-                  </Button>
+                  {isAdmin && (
+                    <Button 
+                      onClick={() => setShowCreateForm(true)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      {t('events.create')}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -282,8 +335,8 @@ const IndexContent = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Event Management Modal */}
-        {showManagement && selectedEvent && (
+        {/* Event Management Modal - Admin Only */}
+        {isAdmin && showManagement && selectedEvent && (
           <EventManagement
             event={selectedEvent}
             onUpdateEvent={handleUpdateEvent}

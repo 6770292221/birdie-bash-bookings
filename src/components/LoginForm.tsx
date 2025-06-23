@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface LoginFormData {
   email: string;
@@ -15,12 +17,29 @@ interface LoginFormData {
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const { login } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const form = useForm<LoginFormData>();
 
-  const onSubmit = (data: LoginFormData) => {
+  const onSubmit = async (data: LoginFormData) => {
     console.log('Login attempt:', data);
-    // TODO: Implement actual login logic
-    alert('Login functionality will be implemented with backend integration');
+    
+    const success = await login(data.email, data.password);
+    
+    if (success) {
+      toast({
+        title: "เข้าสู่ระบบสำเร็จ",
+        description: "ยินดีต้อนรับเข้าสู่ระบบจัดการแบดมินตัน",
+      });
+      navigate('/');
+    } else {
+      toast({
+        title: "เข้าสู่ระบบไม่สำเร็จ",
+        description: "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -31,6 +50,11 @@ const LoginForm = () => {
             เข้าสู่ระบบ
           </CardTitle>
           <p className="text-gray-600">เข้าสู่ระบบเพื่อจองคอร์ทแบดมินตัน</p>
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-700 font-medium">Demo Admin Login:</p>
+            <p className="text-xs text-blue-600">Email: admin@badminton.com</p>
+            <p className="text-xs text-blue-600">Password: admin123</p>
+          </div>
         </CardHeader>
         <CardContent>
           <Form {...form}>
