@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,27 +43,30 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader className="text-center space-y-4">
           <CardTitle className="text-2xl font-bold text-gray-900">
             เข้าสู่ระบบ
           </CardTitle>
           <p className="text-gray-600">เข้าสู่ระบบเพื่อจองคอร์ทแบดมินตัน</p>
-          <div className="mt-4 space-y-3">
-            <div className="p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-700 font-medium">Demo Admin Login:</p>
-              <p className="text-xs text-blue-600">Email: admin@badminton.com</p>
+          
+          {/* Demo Credentials - Mobile Optimized */}
+          <div className="space-y-3">
+            <div className="p-3 bg-blue-50 rounded-lg text-left">
+              <p className="text-sm text-blue-700 font-medium mb-1">Demo Admin Login:</p>
+              <p className="text-xs text-blue-600 break-all">Email: admin@badminton.com</p>
               <p className="text-xs text-blue-600">Password: admin123</p>
             </div>
-            <div className="p-3 bg-green-50 rounded-lg">
-              <p className="text-sm text-green-700 font-medium">Demo User Login:</p>
-              <p className="text-xs text-green-600">Email: user@badminton.com</p>
+            <div className="p-3 bg-green-50 rounded-lg text-left">
+              <p className="text-sm text-green-700 font-medium mb-1">Demo User Login:</p>
+              <p className="text-xs text-green-600 break-all">Email: user@badminton.com</p>
               <p className="text-xs text-green-600">Password: user123</p>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        
+        <CardContent className="space-y-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -77,11 +81,12 @@ const LoginForm = () => {
                 }}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>อีเมล</FormLabel>
+                    <FormLabel className="text-base">อีเมล</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
                         placeholder="example@email.com"
+                        className="h-12 text-base"
                         {...field}
                       />
                     </FormControl>
@@ -102,23 +107,24 @@ const LoginForm = () => {
                 }}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>รหัสผ่าน</FormLabel>
+                    <FormLabel className="text-base">รหัสผ่าน</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
                           type={showPassword ? 'text' : 'password'}
                           placeholder="••••••••"
+                          className="h-12 text-base pr-12"
                           {...field}
                         />
                         <button
                           type="button"
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center touch-manipulation"
                           onClick={() => setShowPassword(!showPassword)}
                         >
                           {showPassword ? (
-                            <EyeOff className="h-4 w-4 text-gray-400" />
+                            <EyeOff className="h-5 w-5 text-gray-400" />
                           ) : (
-                            <Eye className="h-4 w-4 text-gray-400" />
+                            <Eye className="h-5 w-5 text-gray-400" />
                           )}
                         </button>
                       </div>
@@ -128,23 +134,26 @@ const LoginForm = () => {
                 )}
               />
 
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full h-12 text-base font-medium">
                 เข้าสู่ระบบ
               </Button>
-
-              <div className="text-center space-y-2">
-                <p className="text-sm text-gray-600">
-                  ยังไม่มีบัญชี?{' '}
-                  <Link to="/register" className="text-blue-600 hover:text-blue-500 font-medium">
-                    สมัครสมาชิก
-                  </Link>
-                </p>
-                <Link to="/" className="text-sm text-gray-600 hover:text-gray-500">
-                  กลับหน้าหลัก
-                </Link>
-              </div>
             </form>
           </Form>
+
+          <div className="text-center space-y-3">
+            <p className="text-sm text-gray-600">
+              ยังไม่มีบัญชี?{' '}
+              <Link to="/register" className="text-blue-600 hover:text-blue-500 font-medium">
+                สมัครสมาชิก
+              </Link>
+            </p>
+            <Link 
+              to="/" 
+              className="inline-block text-sm text-gray-600 hover:text-gray-500 py-2 px-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+            >
+              กลับหน้าหลัก
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
