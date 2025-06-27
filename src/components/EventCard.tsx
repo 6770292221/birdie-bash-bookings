@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Event } from '@/pages/Index';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface EventCardProps {
   event: Event;
@@ -14,6 +15,7 @@ interface EventCardProps {
 }
 
 const EventCard = ({ event, onSelectEvent, onCancelRegistration, showAdminFeatures = false }: EventCardProps) => {
+  const { t } = useLanguage();
   const registeredPlayers = event.players.filter(p => p.status === 'registered');
   const waitlistPlayers = event.players.filter(p => p.status === 'waitlist');
   const cancelledPlayers = event.players.filter(p => p.status === 'cancelled');
@@ -35,7 +37,7 @@ const EventCard = ({ event, onSelectEvent, onCancelRegistration, showAdminFeatur
             variant={event.status === 'upcoming' ? 'default' : 'secondary'}
             className="flex-shrink-0"
           >
-            {event.status === 'upcoming' ? 'กำลังมา' : 'เสร็จสิ้น'}
+            {event.status === 'upcoming' ? t('events.upcoming') : t('events.completed')}
           </Badge>
         </div>
       </CardHeader>
@@ -56,18 +58,18 @@ const EventCard = ({ event, onSelectEvent, onCancelRegistration, showAdminFeatur
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <div className="flex items-center text-gray-600 text-sm">
             <Users className="w-4 h-4 mr-2 flex-shrink-0" />
-            <span>{registeredPlayers.length}/{event.maxPlayers} ลงทะเบียน</span>
+            <span>{registeredPlayers.length}/{event.maxPlayers} {t('players.registered')}</span>
           </div>
           {waitlistPlayers.length > 0 && (
             <Badge variant="outline" className="text-amber-600 border-amber-300 text-xs">
-              รอ {waitlistPlayers.length} คน
+              {t('players.waitlist')} {waitlistPlayers.length} คน
             </Badge>
           )}
         </div>
 
         {/* Player List - Mobile Optimized */}
         <div className="space-y-2">
-          <h4 className="font-medium text-green-700 text-sm">ผู้เล่นที่ลงทะเบียน:</h4>
+          <h4 className="font-medium text-green-700 text-sm">{t('players.registered')}:</h4>
           <div className="space-y-1 max-h-32 overflow-y-auto">
             {registeredPlayers.map(player => (
               <div key={player.id} className="flex justify-between items-center text-xs sm:text-sm bg-gray-50 rounded p-2">
@@ -108,7 +110,7 @@ const EventCard = ({ event, onSelectEvent, onCancelRegistration, showAdminFeatur
             className="w-full bg-blue-600 hover:bg-blue-700 text-white h-10"
           >
             <Settings className="w-4 h-4 mr-2" />
-            จัดการอีเวนต์
+            {t('events.management')}
           </Button>
         )}
 

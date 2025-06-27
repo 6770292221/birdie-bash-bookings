@@ -13,7 +13,7 @@ const translations = {
   th: {
     'app.title': 'ระบบจองสนามแบดมินตัน',
     'app.subtitle': 'จัดการการเล่นแบดมินตันกลุ่มได้อย่างง่ายดาย',
-    'events.upcoming': 'กิจกรรมที่จะมาถึง',
+    'events.upcoming': 'กำลังมา',
     'events.total_players': 'ผู้เล่นทั้งหมด',
     'events.courts_booked': 'สนามที่จอง',
     'events.completed': 'เสร็จสิ้น',
@@ -45,18 +45,22 @@ const translations = {
     'status.full': 'เต็ม',
     'status.available': 'ว่าง',
     'status.waitlist': 'รายการรอ',
-    'players.registered': 'ผู้เล่นที่ลงทะเบียน',
-    'players.waitlist': 'รายการรอ'
+    'players.registered': 'ลงทะเบียน',
+    'players.waitlist': 'รอ',
+    'nav.login': 'เข้าสู่ระบบ',
+    'nav.logout': 'ออกจากระบบ',
+    'stats.total_players': 'ผู้เล่นทั้งหมด',
+    'stats.courts_booked': 'สนามที่จอง'
   },
   en: {
     'app.title': 'Badminton Court Booking',
     'app.subtitle': 'Manage your group play sessions with ease',
-    'events.upcoming': 'Upcoming Events',
+    'events.upcoming': 'Upcoming',
     'events.total_players': 'Total Players',
     'events.courts_booked': 'Courts Booked',
     'events.completed': 'Completed',
     'events.create': 'Create Event',
-    'events.management': 'Events Management',
+    'events.management': 'Event Management',
     'registration': 'Player Registration',
     'events.no_events': 'No Events Yet',
     'events.no_events_desc': 'Create your first badminton event to get started!',
@@ -82,14 +86,18 @@ const translations = {
     'button.calculate_costs': 'Calculate Costs',
     'status.full': 'Full',
     'status.available': 'Available',
-    'status.waitlist': 'waitlist players',
-    'players.registered': 'Registered Players',
-    'players.waitlist': 'Waitlist'
+    'status.waitlist': 'waitlist',
+    'players.registered': 'Registered',
+    'players.waitlist': 'Waitlist',
+    'nav.login': 'Login',
+    'nav.logout': 'Logout',
+    'stats.total_players': 'Total Players',
+    'stats.courts_booked': 'Courts Booked'
   },
   zh: {
     'app.title': '羽毛球场地预订',
     'app.subtitle': '轻松管理您的团体比赛',
-    'events.upcoming': '即将到来的活动',
+    'events.upcoming': '即将到来',
     'events.total_players': '总球员数',
     'events.courts_booked': '已预订场地',
     'events.completed': '已完成',
@@ -120,14 +128,18 @@ const translations = {
     'button.calculate_costs': '计算费用',
     'status.full': '已满',
     'status.available': '可用',
-    'status.waitlist': '等候名单球员',
-    'players.registered': '已注册球员',
-    'players.waitlist': '等候名单'
+    'status.waitlist': '等候名单',
+    'players.registered': '已注册',
+    'players.waitlist': '等候名单',
+    'nav.login': '登录',
+    'nav.logout': '登出',
+    'stats.total_players': '总球员数',
+    'stats.courts_booked': '已预订场地'
   },
   ja: {
     'app.title': 'バドミントンコート予約',
     'app.subtitle': 'グループセッションを簡単に管理',
-    'events.upcoming': '今後のイベント',
+    'events.upcoming': '今後の',
     'events.total_players': '総プレイヤー数',
     'events.courts_booked': '予約済みコート',
     'events.completed': '完了',
@@ -158,16 +170,20 @@ const translations = {
     'button.calculate_costs': '費用計算',
     'status.full': '満員',
     'status.available': '利用可能',
-    'status.waitlist': '待機リストプレイヤー',
-    'players.registered': '登録済みプレイヤー',
-    'players.waitlist': '待機リスト'
+    'status.waitlist': '待機リスト',
+    'players.registered': '登録済み',
+    'players.waitlist': '待機リスト',
+    'nav.login': 'ログイン',
+    'nav.logout': 'ログアウト',
+    'stats.total_players': '総プレイヤー数',
+    'stats.courts_booked': '予約済みコート'
   }
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>('en');
+  const [language, setLanguage] = useState<Language>('th');
 
   const t = (key: string): string => {
     return translations[language][key] || key;
