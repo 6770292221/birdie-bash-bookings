@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser({
               id: profile.id,
               email: session.user.email || '',
-              role: profile.role,
+              role: profile.role as 'admin' | 'user', // Type assertion for the role
               name: profile.name
             });
           }
