@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Calendar, MapPin, Users, Clock, Plus, LogOut, Shield, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -51,11 +50,22 @@ export interface Event {
 
 const IndexContent = () => {
   const { t } = useLanguage();
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, loading } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showManagement, setShowManagement] = useState(false);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-lg text-gray-600">กำลังโหลด...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleCreateEvent = (eventData: Omit<Event, 'id' | 'players' | 'status' | 'createdBy'>) => {
     const newEvent: Event = {

@@ -17,29 +17,33 @@ interface LoginFormData {
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const form = useForm<LoginFormData>();
 
   const onSubmit = async (data: LoginFormData) => {
-    console.log('Login attempt:', data);
+    setIsLoading(true);
+    console.log('Login attempt:', data.email);
     
-    const success = await login(data.email, data.password);
+    const { error } = await login(data.email, data.password);
     
-    if (success) {
+    if (error) {
+      toast({
+        title: "เข้าสู่ระบบไม่สำเร็จ",
+        description: error,
+        variant: "destructive",
+      });
+    } else {
       toast({
         title: "เข้าสู่ระบบสำเร็จ",
         description: "ยินดีต้อนรับเข้าสู่ระบบจัดการแบดมินตัน",
       });
       navigate('/');
-    } else {
-      toast({
-        title: "เข้าสู่ระบบไม่สำเร็จ",
-        description: "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
-        variant: "destructive",
-      });
     }
+    
+    setIsLoading(false);
   };
 
   return (
@@ -50,20 +54,6 @@ const LoginForm = () => {
             เข้าสู่ระบบ
           </CardTitle>
           <p className="text-gray-600">เข้าสู่ระบบเพื่อจองคอร์ทแบดมินตัน</p>
-          
-          {/* Demo Credentials - Mobile Optimized */}
-          <div className="space-y-3">
-            <div className="p-3 bg-blue-50 rounded-lg text-left">
-              <p className="text-sm text-blue-700 font-medium mb-1">Demo Admin Login:</p>
-              <p className="text-xs text-blue-600 break-all">Email: admin@badminton.com</p>
-              <p className="text-xs text-blue-600">Password: admin123</p>
-            </div>
-            <div className="p-3 bg-green-50 rounded-lg text-left">
-              <p className="text-sm text-green-700 font-medium mb-1">Demo User Login:</p>
-              <p className="text-xs text-green-600 break-all">Email: user@badminton.com</p>
-              <p className="text-xs text-green-600">Password: user123</p>
-            </div>
-          </div>
         </CardHeader>
         
         <CardContent className="space-y-6">
@@ -134,8 +124,12 @@ const LoginForm = () => {
                 )}
               />
 
-              <Button type="submit" className="w-full h-12 text-base font-medium">
-                เข้าสู่ระบบ
+              <Button 
+                type="submit" 
+                className="w-full h-12 text-base font-medium"
+                disabled={isLoading}
+              >
+                {isLoading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
               </Button>
             </form>
           </Form>

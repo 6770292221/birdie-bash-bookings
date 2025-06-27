@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface RegisterFormData {
   name: string;
@@ -18,9 +20,13 @@ interface RegisterFormData {
 const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { register } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const form = useForm<RegisterFormData>();
 
-  const onSubmit = (data: RegisterFormData) => {
+  const onSubmit = async (data: RegisterFormData) => {
     if (data.password !== data.confirmPassword) {
       form.setError('confirmPassword', {
         message: 'รหัสผ่านไม่ตรงกัน'
@@ -28,9 +34,26 @@ const RegisterForm = () => {
       return;
     }
     
-    console.log('Register attempt:', data);
-    // TODO: Implement actual registration logic
-    alert('Registration functionality will be implemented with backend integration');
+    setIsLoading(true);
+    console.log('Register attempt:', data.email);
+    
+    const { error } = await register(data.email, data.password, data.name);
+    
+    if (error) {
+      toast({
+        title: "สมัครสมาชิกไม่สำเร็จ",
+        description: error,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "สมัครสมาชิกสำเร็จ",
+        description: "กรุณาตรวจสอบอีเมลของคุณเพื่อยืนยันบัญชี",
+      });
+      navigate('/login');
+    }
+    
+    setIsLoading(false);
   };
 
   return (
@@ -166,8 +189,12 @@ const RegisterForm = () => {
                 )}
               />
 
-              <Button type="submit" className="w-full">
-                สมัครสมาชิก
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading ? 'กำลังสมัครสมาชิก...' : 'สมัครสมาชิก'}
               </Button>
 
               <div className="text-center space-y-2">
