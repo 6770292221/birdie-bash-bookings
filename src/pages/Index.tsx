@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, MapPin, Users, Clock, Plus, LogOut, Shield, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,8 +13,11 @@ import AuthButtons from '@/components/AuthButtons';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Court {
+  id?: string;
   courtNumber: number;
   startTime: string;
   endTime: string;
@@ -31,6 +34,7 @@ export interface Player {
   registrationTime: Date;
   status: 'registered' | 'waitlist' | 'cancelled';
   cancelledOnEventDay?: boolean;
+  userId?: string;
 }
 
 export interface Event {
@@ -51,12 +55,97 @@ export interface Event {
 const IndexContent = () => {
   const { t } = useLanguage();
   const { user, logout, isAdmin, loading } = useAuth();
+  const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showManagement, setShowManagement] = useState(false);
+  const [eventsLoading, setEventsLoading] = useState(true);
 
-  if (loading) {
+  // Fetch events from Supabase
+  const fetchEvents = async () => {
+    try {
+      setEventsLoading(true);
+      
+      // Fetch events with courts and players
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select('*')
+        .order('event_date', { ascending: true });
+
+      if (eventsError) throw eventsError;
+
+      // Fetch courts for each event
+      const { data: courtsData, error: courtsError } = await supabase
+        .from('courts')
+        .select('*')
+        .order('court_number', { ascending: true });
+
+      if (courtsError) throw courtsError;
+
+      // Fetch players for each event
+      const { data: playersData, error: playersError } = await supabase
+        .from('players')
+        .select('*')
+        .order('registration_time', { ascending: true });
+
+      if (playersError) throw playersError;
+
+      // Combine data
+      const formattedEvents: Event[] = eventsData.map(event => ({
+        id: event.id,
+        eventName: event.event_name,
+        eventDate: event.event_date,
+        venue: event.venue,
+        maxPlayers: event.max_players,
+        shuttlecockPrice: Number(event.shuttlecock_price),
+        courtHourlyRate: Number(event.court_hourly_rate),
+        shuttlecocksUsed: event.shuttlecocks_used || 0,
+        status: event.status as 'upcoming' | 'completed' | 'cancelled',
+        createdBy: event.created_by,
+        courts: courtsData
+          .filter(court => court.event_id === event.id)
+          .map(court => ({
+            id: court.id,
+            courtNumber: court.court_number,
+            startTime: court.start_time,
+            endTime: court.end_time,
+            actualStartTime: court.actual_start_time,
+            actualEndTime: court.actual_end_time,
+          })),
+        players: playersData
+          .filter(player => player.event_id === event.id)
+          .map(player => ({
+            id: player.id,
+            name: player.name,
+            email: player.email,
+            startTime: player.start_time,
+            endTime: player.end_time,
+            registrationTime: new Date(player.registration_time),
+            status: player.status as 'registered' | 'waitlist' | 'cancelled',
+            cancelledOnEventDay: player.cancelled_on_event_day || false,
+            userId: player.user_id,
+          }))
+      }));
+
+      setEvents(formattedEvents);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load events",
+        variant: "destructive",
+      });
+    } finally {
+      setEventsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  if (loading || eventsLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center">
         <div className="text-center">
@@ -67,71 +156,210 @@ const IndexContent = () => {
     );
   }
 
-  const handleCreateEvent = (eventData: Omit<Event, 'id' | 'players' | 'status' | 'createdBy'>) => {
-    const newEvent: Event = {
-      ...eventData,
-      id: Date.now().toString(),
-      players: [],
-      status: 'upcoming',
-      createdBy: 'Group Leader',
-    };
-    setEvents([...events, newEvent]);
-    setShowCreateForm(false);
+  const handleCreateEvent = async (eventData: Omit<Event, 'id' | 'players' | 'status' | 'createdBy'>) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create events",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Create event
+      const { data: eventResult, error: eventError } = await supabase
+        .from('events')
+        .insert({
+          event_name: eventData.eventName,
+          event_date: eventData.eventDate,
+          venue: eventData.venue,
+          max_players: eventData.maxPlayers,
+          shuttlecock_price: eventData.shuttlecockPrice,
+          court_hourly_rate: eventData.courtHourlyRate,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (eventError) throw eventError;
+
+      // Create courts
+      const courtsToInsert = eventData.courts.map(court => ({
+        event_id: eventResult.id,
+        court_number: court.courtNumber,
+        start_time: court.startTime,
+        end_time: court.endTime,
+      }));
+
+      const { error: courtsError } = await supabase
+        .from('courts')
+        .insert(courtsToInsert);
+
+      if (courtsError) throw courtsError;
+
+      setShowCreateForm(false);
+      fetchEvents(); // Refresh events list
+      
+      toast({
+        title: "Success",
+        description: "Event created successfully",
+      });
+    } catch (error) {
+      console.error('Error creating event:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create event",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handlePlayerRegistration = (eventId: string, playerData: Omit<Player, 'id' | 'registrationTime' | 'status'>) => {
-    setEvents(events.map(event => {
-      if (event.id === eventId) {
-        const isWaitlist = event.players.filter(p => p.status === 'registered').length >= event.maxPlayers;
-        const newPlayer: Player = {
-          ...playerData,
-          id: Date.now().toString(),
-          registrationTime: new Date(),
+  const handlePlayerRegistration = async (eventId: string, playerData: Omit<Player, 'id' | 'registrationTime' | 'status'>) => {
+    try {
+      const event = events.find(e => e.id === eventId);
+      if (!event) return;
+
+      const isWaitlist = event.players.filter(p => p.status === 'registered').length >= event.maxPlayers;
+
+      const { error } = await supabase
+        .from('players')
+        .insert({
+          event_id: eventId,
+          name: playerData.name,
+          email: playerData.email || 'guest@example.com',
+          start_time: playerData.startTime,
+          end_time: playerData.endTime,
           status: isWaitlist ? 'waitlist' : 'registered',
-        };
-        return {
-          ...event,
-          players: [...event.players, newPlayer],
-        };
-      }
-      return event;
-    }));
-  };
-
-  const handleCancelRegistration = (eventId: string, playerId: string, isEventDay: boolean = false) => {
-    setEvents(events.map(event => {
-      if (event.id === eventId) {
-        const updatedPlayers = event.players.map(player => {
-          if (player.id === playerId) {
-            return {
-              ...player,
-              status: 'cancelled' as const,
-              cancelledOnEventDay: isEventDay,
-            };
-          }
-          return player;
+          user_id: user?.id,
         });
 
-        // Move first waitlist player to registered if someone cancelled
-        const waitlistPlayers = updatedPlayers.filter(p => p.status === 'waitlist');
-        if (waitlistPlayers.length > 0) {
-          const firstWaitlist = waitlistPlayers[0];
-          firstWaitlist.status = 'registered';
-        }
+      if (error) throw error;
 
-        return {
-          ...event,
-          players: updatedPlayers,
-        };
-      }
-      return event;
-    }));
+      fetchEvents(); // Refresh events list
+      
+      toast({
+        title: "Registration Successful",
+        description: isWaitlist ? "You've been added to the waitlist" : "You've been registered for the event",
+      });
+    } catch (error) {
+      console.error('Error registering player:', error);
+      toast({
+        title: "Error",
+        description: "Failed to register for event",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleUpdateEvent = (eventId: string, updates: Partial<Event>) => {
-    setEvents(events.map(event => 
-      event.id === eventId ? { ...event, ...updates } : event
-    ));
+  const handleCancelRegistration = async (eventId: string, playerId: string, isEventDay: boolean = false) => {
+    try {
+      const { error } = await supabase
+        .from('players')
+        .update({
+          status: 'cancelled',
+          cancelled_on_event_day: isEventDay,
+        })
+        .eq('id', playerId);
+
+      if (error) throw error;
+
+      // If someone cancelled and there are waitlist players, move the first waitlist player to registered
+      const event = events.find(e => e.id === eventId);
+      if (event) {
+        const waitlistPlayers = event.players.filter(p => p.status === 'waitlist');
+        if (waitlistPlayers.length > 0) {
+          const firstWaitlist = waitlistPlayers[0];
+          await supabase
+            .from('players')
+            .update({ status: 'registered' })
+            .eq('id', firstWaitlist.id);
+        }
+      }
+
+      fetchEvents(); // Refresh events list
+      
+      toast({
+        title: "Registration Cancelled",
+        description: isEventDay 
+          ? "Registration cancelled. 100 THB fine applied for same-day cancellation."
+          : "Registration cancelled successfully.",
+        variant: isEventDay ? "destructive" : "default",
+      });
+    } catch (error) {
+      console.error('Error cancelling registration:', error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel registration",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateEvent = async (eventId: string, updates: Partial<Event>) => {
+    try {
+      // Update event
+      if (updates.shuttlecocksUsed !== undefined || updates.status) {
+        const { error: eventError } = await supabase
+          .from('events')
+          .update({
+            ...(updates.shuttlecocksUsed !== undefined && { shuttlecocks_used: updates.shuttlecocksUsed }),
+            ...(updates.status && { status: updates.status }),
+          })
+          .eq('id', eventId);
+
+        if (eventError) throw eventError;
+      }
+
+      // Update courts if provided
+      if (updates.courts) {
+        // Delete existing courts and recreate them
+        await supabase.from('courts').delete().eq('event_id', eventId);
+        
+        const courtsToInsert = updates.courts.map(court => ({
+          event_id: eventId,
+          court_number: court.courtNumber,
+          start_time: court.startTime,
+          end_time: court.endTime,
+          actual_start_time: court.actualStartTime,
+          actual_end_time: court.actualEndTime,
+        }));
+
+        const { error: courtsError } = await supabase
+          .from('courts')
+          .insert(courtsToInsert);
+
+        if (courtsError) throw courtsError;
+      }
+
+      // Update players if provided
+      if (updates.players) {
+        for (const player of updates.players) {
+          const { error } = await supabase
+            .from('players')
+            .update({
+              name: player.name,
+              email: player.email,
+              start_time: player.startTime,
+              end_time: player.endTime,
+              status: player.status,
+              cancelled_on_event_day: player.cancelledOnEventDay,
+            })
+            .eq('id', player.id);
+
+          if (error) throw error;
+        }
+      }
+
+      fetchEvents(); // Refresh events list
+    } catch (error) {
+      console.error('Error updating event:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update event",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSelectEvent = (event: Event) => {
