@@ -430,13 +430,20 @@ const IndexContent = () => {
                     <p className="text-sm text-amber-600">กรุณาเข้าสู่ระบบด้วยบัญชีแอดมินเพื่อจัดการอีเวนต์</p>
                   </div>
                 </div>
-                {!user && (
-                  <Link to="/login">
-                    <Button size="sm" className="bg-amber-600 hover:bg-amber-700 w-full sm:w-auto">
-                      เข้าสู่ระบบ
+                <div className="flex gap-2">
+                  <Link to="/mock-accounts">
+                    <Button size="sm" variant="outline" className="border-amber-600 text-amber-600 hover:bg-amber-50">
+                      ดูบัญชีทดสอบ
                     </Button>
                   </Link>
-                )}
+                  {!user && (
+                    <Link to="/login">
+                      <Button size="sm" className="bg-amber-600 hover:bg-amber-700 w-full sm:w-auto">
+                        เข้าสู่ระบบ
+                      </Button>
+                    </Link>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
