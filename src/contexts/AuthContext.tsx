@@ -21,14 +21,14 @@ interface AuthContextType {
 // Mock users data
 const mockUsers = [
   {
-    id: '1',
+    id: '00000000-0000-0000-0000-000000000001',
     email: 'admin@badminton.com',
     password: 'admin123',
     role: 'admin' as const,
     name: 'ผู้ดูแลระบบ'
   },
   {
-    id: '2',
+    id: '00000000-0000-0000-0000-000000000002',
     email: 'user@badminton.com',
     password: 'user123',
     role: 'user' as const,
