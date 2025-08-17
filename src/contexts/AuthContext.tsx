@@ -1,7 +1,5 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
 
 interface UserProfile {
   id: string;
@@ -12,7 +10,7 @@ interface UserProfile {
 
 interface AuthContextType {
   user: UserProfile | null;
-  session: Session | null;
+  session: { user: UserProfile } | null;
   login: (email: string, password: string) => Promise<{ error?: string }>;
   register: (email: string, password: string, name: string) => Promise<{ error?: string }>;
   logout: () => Promise<void>;
@@ -20,65 +18,61 @@ interface AuthContextType {
   loading: boolean;
 }
 
+// Mock users data
+const mockUsers = [
+  {
+    id: '1',
+    email: 'admin@badminton.com',
+    password: 'admin123',
+    role: 'admin' as const,
+    name: 'ผู้ดูแลระบบ'
+  },
+  {
+    id: '2',
+    email: 'user@badminton.com',
+    password: 'user123',
+    role: 'user' as const,
+    name: 'ผู้ใช้ทั่วไป'
+  }
+];
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<{ user: UserProfile } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session);
-        setSession(session);
-        
-        if (session?.user) {
-          // Fetch user profile
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (profile && !error) {
-            setUser({
-              id: profile.id,
-              email: session.user.email || '',
-              role: profile.role as 'admin' | 'user', // Type assertion for the role
-              name: profile.name
-            });
-          }
-        } else {
-          setUser(null);
-        }
-        setLoading(false);
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSession(session);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    // Check for existing session in localStorage
+    const savedUser = localStorage.getItem('mockUser');
+    if (savedUser) {
+      const userData = JSON.parse(savedUser);
+      setUser(userData);
+      setSession({ user: userData });
+    }
+    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string): Promise<{ error?: string }> => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // Find user in mock data
+      const mockUser = mockUsers.find(u => u.email === email && u.password === password);
       
-      if (error) {
-        return { error: error.message };
+      if (!mockUser) {
+        return { error: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' };
       }
+      
+      const userData: UserProfile = {
+        id: mockUser.id,
+        email: mockUser.email,
+        role: mockUser.role,
+        name: mockUser.name
+      };
+      
+      setUser(userData);
+      setSession({ user: userData });
+      localStorage.setItem('mockUser', JSON.stringify(userData));
       
       return {};
     } catch (error) {
@@ -88,29 +82,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const register = async (email: string, password: string, name: string): Promise<{ error?: string }> => {
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: name,
-          },
-          emailRedirectTo: `${window.location.origin}/`
-        }
-      });
-      
-      if (error) {
-        return { error: error.message };
-      }
-      
-      return {};
+      // For mock implementation, just return success
+      return { error: 'การสมัครสมาชิกไม่พร้อมใช้งานในโหมดทดสอบ' };
     } catch (error) {
       return { error: 'เกิดข้อผิดพลาดในการสมัครสมาชิก' };
     }
   };
 
   const logout = async (): Promise<void> => {
-    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+    localStorage.removeItem('mockUser');
   };
 
   const isAdmin = user?.role === 'admin';
