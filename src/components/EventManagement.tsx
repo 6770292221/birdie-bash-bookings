@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calculator, Clock, DollarSign, Edit2, Save, X, Plus, UserX } from 'lucide-react';
+import { Calculator, Clock, DollarSign, Edit2, Save, X, Plus, UserX, Users, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,8 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Event, Court, Player } from '@/pages/Index';
 import { useToast } from '@/hooks/use-toast';
+import PlayerMatching from './PlayerMatching';
+import PaymentManager from './PaymentManager';
 
 interface EventManagementProps {
   event: Event;
@@ -257,6 +260,25 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
       hourlyBreakdown: []
     }));
 
+    // Add some mock players with fines for demo
+    const mockPlayersWithFines = [
+      {
+        name: 'สมศรี ขาดนัด',
+        playerId: 'mock-fine-1',
+        startTime: '20:00',
+        endTime: '22:00',
+        courtFee: 0,
+        shuttlecockFee: 0,
+        fine: 100,
+        total: 100,
+        hourlyBreakdown: []
+      }
+    ];
+    
+    if (cancelledPlayersBreakdown.length === 0) {
+      cancelledPlayersBreakdown.push(...mockPlayersWithFines);
+    }
+
     // Combine both breakdowns
     const breakdown = [...registeredPlayersBreakdown, ...cancelledPlayersBreakdown];
 
@@ -324,18 +346,36 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white/95 backdrop-blur-lg rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto border-0">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">{event.eventName}</h2>
-              <p className="text-gray-600">Event Management & Cost Calculation</p>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">{event.eventName}</h2>
+              <p className="text-gray-600">Event Management Dashboard</p>
             </div>
-            <Button onClick={onClose} variant="ghost" size="sm">
+            <Button onClick={onClose} variant="ghost" size="sm" className="hover:bg-gray-100 rounded-full p-2 transition-all duration-200">
               <X className="w-4 h-4" />
             </Button>
           </div>
+
+          <Tabs defaultValue="cost" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-blue-50 to-purple-50 p-1 rounded-lg border-0">
+              <TabsTrigger value="cost" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md">
+                <Calculator className="w-4 h-4 mr-2" />
+                Cost Calculation
+              </TabsTrigger>
+              <TabsTrigger value="matching" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md">
+                <Users className="w-4 h-4 mr-2" />
+                Player Matching
+              </TabsTrigger>
+              <TabsTrigger value="payment" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md">
+                <CreditCard className="w-4 h-4 mr-2" />
+                Payment
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="cost" className="space-y-6">
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Actual Court Usage */}
@@ -612,22 +652,34 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
               {costBreakdown.length > 0 && (
                 <div className="space-y-4">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm bg-white rounded-lg shadow-lg border-0 overflow-hidden">
                       <thead>
-                        <tr className="border-b">
-                          <th className="text-left p-2">Player</th>
-                          <th className="text-center p-2">Start Time</th>
-                          <th className="text-center p-2">End Time</th>
-                          <th className="text-right p-2">Court Fee</th>
-                          <th className="text-right p-2">Shuttlecock</th>
-                          <th className="text-right p-2">Fine</th>
-                          <th className="text-right p-2 font-bold">Total</th>
+                        <tr className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                          <th className="text-left p-4 font-semibold">Player</th>
+                          <th className="text-center p-4 font-semibold">Start Time</th>
+                          <th className="text-center p-4 font-semibold">End Time</th>
+                          <th className="text-right p-4 font-semibold">Court Fee</th>
+                          <th className="text-right p-4 font-semibold">Shuttlecock</th>
+                          <th className="text-right p-4 font-semibold">Fine</th>
+                          <th className="text-right p-4 font-semibold">Total</th>
                         </tr>
                       </thead>
                       <tbody>
                         {costBreakdown.map((item, index) => (
-                          <tr key={index} className="border-b">
-                            <td className="p-2">{item.name}</td>
+                          <tr key={index} className={`border-b border-gray-100 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-200 ${
+                            item.fine > 0 ? 'bg-red-50 border-red-100' : 'hover:shadow-sm'
+                          }`}>
+                            <td className="p-4 font-medium">
+                              <div className="flex items-center">
+                                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xs mr-3">
+                                  {item.name.charAt(0)}
+                                </div>
+                                <div>
+                                  <div className="font-medium">{item.name}</div>
+                                  {item.fine > 0 && <div className="text-xs text-red-600 font-medium">⚠️ มีค่าปรับ</div>}
+                                </div>
+                              </div>
+                            </td>
                             <td className="text-center p-2">
                               {isEditingCostPlayers ? (
                                 <Select
@@ -670,18 +722,30 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                                 item.endTime
                               )}
                             </td>
-                            <td className="text-right p-2">฿{item.courtFee}</td>
-                            <td className="text-right p-2">฿{item.shuttlecockFee}</td>
-                            <td className="text-right p-2">฿{item.fine}</td>
-                            <td className="text-right p-2 font-bold">฿{item.total}</td>
+                            <td className="text-right p-4 font-medium text-gray-700">฿{item.courtFee}</td>
+                            <td className="text-right p-4 font-medium text-gray-700">฿{item.shuttlecockFee}</td>
+                            <td className="text-right p-4 font-medium">
+                              <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                item.fine > 0 ? 'bg-red-100 text-red-800' : 'text-green-600'
+                              }`}>
+                                ฿{item.fine}
+                              </span>
+                            </td>
+                            <td className="text-right p-4">
+                              <div className="font-bold text-lg text-blue-700">฿{item.total}</div>
+                            </td>
                           </tr>
                         ))}
-                        <tr className="border-t-2 border-gray-400 font-bold">
-                          <td className="p-2" colSpan={3}>Total</td>
-                          <td className="text-right p-2">฿{costBreakdown.reduce((sum, item) => sum + item.courtFee, 0).toFixed(2)}</td>
-                          <td className="text-right p-2">฿{costBreakdown.reduce((sum, item) => sum + item.shuttlecockFee, 0).toFixed(2)}</td>
-                          <td className="text-right p-2">฿{costBreakdown.reduce((sum, item) => sum + item.fine, 0).toFixed(2)}</td>
-                          <td className="text-right p-2">฿{costBreakdown.reduce((sum, item) => sum + item.total, 0).toFixed(2)}</td>
+                        <tr className="bg-gradient-to-r from-green-100 to-blue-100 border-t-2 border-blue-300 font-bold">
+                          <td className="p-4 font-bold text-gray-800" colSpan={3}>รวมทั้งหมด</td>
+                          <td className="text-right p-4 font-bold text-blue-700">฿{costBreakdown.reduce((sum, item) => sum + item.courtFee, 0).toFixed(2)}</td>
+                          <td className="text-right p-4 font-bold text-blue-700">฿{costBreakdown.reduce((sum, item) => sum + item.shuttlecockFee, 0).toFixed(2)}</td>
+                          <td className="text-right p-4 font-bold text-red-700">฿{costBreakdown.reduce((sum, item) => sum + item.fine, 0).toFixed(2)}</td>
+                          <td className="text-right p-4">
+                            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg text-xl font-bold">
+                              ฿{costBreakdown.reduce((sum, item) => sum + item.total, 0).toFixed(2)}
+                            </div>
+                          </td>
                         </tr>
                       </tbody>
                     </table>
@@ -730,6 +794,33 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
               )}
             </CardContent>
           </Card>
+            </TabsContent>
+
+            <TabsContent value="matching" className="space-y-6">
+              <PlayerMatching 
+                event={event}
+                onUpdateEvent={onUpdateEvent}
+              />
+            </TabsContent>
+
+            <TabsContent value="payment" className="space-y-6">
+              {costBreakdown.length > 0 ? (
+                <PaymentManager 
+                  event={event}
+                  onUpdateEvent={onUpdateEvent}
+                  costBreakdown={costBreakdown}
+                />
+              ) : (
+                <Card className="bg-white/90 backdrop-blur-sm">
+                  <CardContent className="text-center py-12">
+                    <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No Cost Data Available</h3>
+                    <p className="text-gray-500">Please calculate costs first in the Cost Calculation tab</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

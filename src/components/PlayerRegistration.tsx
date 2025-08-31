@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Event, Player } from '@/pages/Index';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PlayerRegistrationProps {
   event: Event;
@@ -19,8 +20,15 @@ interface PlayerRegistrationProps {
 
 const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerRegistrationProps) => {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
-  const [playerName, setPlayerName] = useState('');
+  // Mock player names for auto-generation
+  const mockPlayerNames = [
+    'สมชาย ใจดี', 'สมหญิง รักเกม', 'ธนากร เทพบุตร', 'มานี สมบูรณ์',
+    'วิชัย แกล้วกล้า', 'นิภา มีความสุข', 'ประชา ชาติไทย', 'สุนทร บุญมาก',
+    'รัตนา ทองคำ', 'กิติ สว่างใส', 'อรุณ เช้าใหม่', 'พิมพ์ ใสสะอาด',
+    'วิมล ศรีสุข', 'จิรา ลาภยืน', 'ชาย ดีงาม', 'นิตยา แสงทอง'
+  ];
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const { toast } = useToast();
@@ -59,6 +67,50 @@ const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerR
 
   const availableTimes = getAvailableTimes();
 
+  const generateMockName = () => {
+    // Get available names (not already used in this event)
+    const usedNames = event.players.map(p => p.name);
+    const availableNames = mockPlayerNames.filter(name => !usedNames.includes(name));
+    
+    if (availableNames.length > 0) {
+      return availableNames[Math.floor(Math.random() * availableNames.length)];
+    }
+    
+    // If all names are used, generate a numbered variant
+    return `ผู้เล่น ${event.players.length + 1}`;
+  };
+
+  const handleQuickJoin = () => {
+    // Use full event time (earliest start to latest end)
+    const allStartTimes: number[] = [];
+    const allEndTimes: number[] = [];
+
+    event.courts.forEach(court => {
+      const start = new Date(`2000-01-01T${court.startTime}`).getTime();
+      const end = new Date(`2000-01-01T${court.endTime}`).getTime();
+      allStartTimes.push(start);
+      allEndTimes.push(end);
+    });
+
+    const earliestStart = new Date(Math.min(...allStartTimes)).toTimeString().slice(0, 5);
+    const latestEnd = new Date(Math.max(...allEndTimes)).toTimeString().slice(0, 5);
+
+    const mockName = generateMockName();
+
+    onRegister(event.id, {
+      name: mockName,
+      email: '',
+      startTime: earliestStart,
+      endTime: latestEnd,
+      userId: user?.id,
+    });
+    
+    toast({
+      title: "Registration Successful",
+      description: isFull ? `${mockName} has been added to the waitlist for full event time` : `${mockName} has been registered for the full event time`,
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -80,14 +132,16 @@ const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerR
       return;
     }
 
+    const mockName = generateMockName();
+
     onRegister(event.id, {
-      name: playerName,
+      name: mockName,
       email: '',
       startTime,
       endTime,
+      userId: user?.id,
     });
     
-    setPlayerName('');
     setStartTime('');
     setEndTime('');
     setShowForm(false);
@@ -111,7 +165,7 @@ const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerR
   };
 
   return (
-    <Card className="bg-white/80 backdrop-blur-sm border-green-200 hover:shadow-lg transition-all duration-200">
+    <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
@@ -168,25 +222,30 @@ const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerR
         </div>
 
         {!showForm ? (
-          <Button
-            onClick={() => setShowForm(true)}
-            className="w-full bg-green-600 hover:bg-green-700 text-white"
-            size="sm"
-          >
-            {isFull ? t('form.join_waitlist') : t('form.register')}
-          </Button>
+          <div className="space-y-2">
+            <Button
+              onClick={handleQuickJoin}
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              size="sm"
+              disabled={event.status === 'completed'}
+            >
+{t('buttons.join_full_time')}
+            </Button>
+            <Button
+              onClick={() => setShowForm(true)}
+              variant="outline"
+              className="w-full border-green-600 text-green-600 hover:bg-green-50"
+              size="sm"
+              disabled={event.status === 'completed'}
+            >
+{t('buttons.select_custom_time')}
+            </Button>
+          </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="playerName" className="text-gray-700">{t('form.player_name')}</Label>
-              <Input
-                id="playerName"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                placeholder="Enter your name"
-                required
-                className="border-green-200 focus:border-green-500"
-              />
+              <Label className="text-gray-700">{t('labels.auto_name_info')}</Label>
+              <p className="text-sm text-gray-500">{t('labels.select_play_time')}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -256,14 +315,17 @@ const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerR
                       {player.startTime || '20:00'} - {player.endTime}
                     </span>
                   </div>
-                  <Button
-                    onClick={() => handleCancelRegistration(player.id, player.name)}
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+                  {/* Only show cancel button if it's the current user's registration */}
+                  {user && player.userId === user.id && (
+                    <Button
+                      onClick={() => handleCancelRegistration(player.id, player.name)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
@@ -282,14 +344,17 @@ const PlayerRegistration = ({ event, onRegister, onCancelRegistration }: PlayerR
                       {player.startTime || '20:00'} - {player.endTime}
                     </span>
                   </div>
-                  <Button
-                    onClick={() => handleCancelRegistration(player.id, player.name)}
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+                  {/* Only show cancel button if it's the current user's registration */}
+                  {user && player.userId === user.id && (
+                    <Button
+                      onClick={() => handleCancelRegistration(player.id, player.name)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

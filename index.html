@@ -3,22 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>birdie-bash-bookings</title>
-    <meta name="description" content="Lovable Generated Project" />
-    <meta name="author" content="Lovable" />
+    <title>Badminton Event Manager (BEM)</title>
+    <meta name="description" content="Manage your badminton group play sessions with ease" />
+    <meta name="author" content="BEM Team" />
 
-    <meta property="og:title" content="birdie-bash-bookings" />
-    <meta property="og:description" content="Lovable Generated Project" />
+    <meta property="og:title" content="Badminton Event Manager (BEM)" />
+    <meta property="og:description" content="Manage your badminton group play sessions with ease" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    
+    <!-- Google Maps Places API -->
+    <script async defer 
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB7OXmzfQYua_1LEhRdqsoYpNDJGcuJQww&libraries=places&callback=initMap">
+    </script>
   </head>
 
   <body>
     <div id="root"></div>
+    <script>
+      // Initialize Google Maps callback
+      window.initMap = function() {
+        // Maps API is loaded and ready
+        window.googleMapsReady = true;
+        window.dispatchEvent(new Event('google-maps-loaded'));
+      };
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

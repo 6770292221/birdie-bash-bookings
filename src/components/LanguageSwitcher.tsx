@@ -8,10 +8,8 @@ const LanguageSwitcher = () => {
   const { language, setLanguage } = useLanguage();
 
   const languages = [
-    { code: 'en', name: 'English', flag: '🇺🇸' },
     { code: 'th', name: 'ไทย', flag: '🇹🇭' },
-    { code: 'zh', name: '中文', flag: '🇨🇳' },
-    { code: 'ja', name: '日本語', flag: '🇯🇵' }
+    { code: 'en', name: 'English', flag: '🇺🇸' }
   ];
 
   return (

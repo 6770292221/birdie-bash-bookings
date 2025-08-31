@@ -47,7 +47,7 @@ export interface Event {
   courts: Court[];
   players: Player[];
   shuttlecocksUsed?: number;
-  status: 'upcoming' | 'completed' | 'cancelled';
+  status: 'upcoming' | 'completed' | 'cancelled' | 'in_progress' | 'calculating' | 'awaiting_payment';
   createdBy: string;
 }
 
@@ -386,27 +386,53 @@ const IndexContent = () => {
           </Card>
         </div>
 
-        {/* Main Content - Mobile Optimized Tabs */}
-        <Tabs defaultValue="events" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 bg-white/70 backdrop-blur-sm h-12">
-            <TabsTrigger 
-              value="events" 
-              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-sm sm:text-base"
-            >
-              {isAdmin ? t('events.management') : 'ดูอีเวนต์'}
-            </TabsTrigger>
-            <TabsTrigger 
-              value="registration" 
-              className="data-[state=active]:bg-green-600 data-[state=active]:text-white text-sm sm:text-base"
-            >
-              {t('registration')}
-            </TabsTrigger>
+        {/* Main Content - Tab Interface */}
+        <Tabs defaultValue={isAdmin ? "management" : "upcoming"} className="space-y-4">
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-2' : 'grid-cols-3'} bg-gradient-to-r from-blue-50 to-purple-50 p-1 rounded-lg border-0 h-12`}>
+            {isAdmin ? (
+              <>
+                <TabsTrigger 
+                  value="management" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
+                >
+                  🎯 จัดการกิจกรรม
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="admin-history" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
+                >
+                  📊 ประวัติ
+                </TabsTrigger>
+              </>
+            ) : (
+              <>
+                <TabsTrigger 
+                  value="upcoming" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
+                >
+                  📅 อีเวนต์ที่กำลังจะมา
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="registration" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
+                >
+                  ✏️ ลงทะเบียนผู้เล่น
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="user-history" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
+                >
+                  📋 ประวัติ
+                </TabsTrigger>
+              </>
+            )}
           </TabsList>
 
-          <TabsContent value="events" className="space-y-4">
+          {/* Admin Management Tab */}
+          <TabsContent value="management" className="space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">
-                {isAdmin ? t('events.management') : 'อีเวนต์ที่กำลังจะมาถึง'}
+                {t('events.management')}
               </h2>
               {isAdmin && (
                 <Button 
@@ -458,6 +484,98 @@ const IndexContent = () => {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* Admin History Tab */}
+          <TabsContent value="admin-history" className="space-y-4">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">ประวัติการจัดกิจกรรม</h2>
+            <div className="space-y-4">
+              {[...events].sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime()).map(event => (
+                <div key={event.id} className="bg-gradient-to-r from-gray-50 to-blue-50 p-4 rounded-lg border hover:shadow-md transition-all duration-200">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{event.eventName}</h3>
+                      <p className="text-sm text-gray-600">{event.eventDate} • {event.venue}</p>
+                      <div className="flex gap-2 mt-2">
+                        <Badge className={`text-xs ${
+                          event.status === 'upcoming' ? 'bg-green-100 text-green-700' :
+                          event.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                          event.status === 'calculating' ? 'bg-yellow-100 text-yellow-700' :
+                          event.status === 'awaiting_payment' ? 'bg-orange-100 text-orange-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {t(`events.${event.status}`)}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {event.players.filter(p => p.status === 'registered').length}/{event.maxPlayers} ผู้เล่น
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-blue-700">
+                        {event.status === 'completed' ? 
+                          `฿${((event.courts.reduce((sum, court) => {
+                            const hours = (new Date(`2000-01-01T${court.endTime}`).getTime() - 
+                                        new Date(`2000-01-01T${court.startTime}`).getTime()) / (1000 * 60 * 60);
+                            return sum + hours;
+                          }, 0) * event.courtHourlyRate) + 
+                          ((event.shuttlecocksUsed || 0) * event.shuttlecockPrice)).toFixed(0)}` 
+                          : '-'
+                        }
+                      </div>
+                      <div className="text-xs text-gray-500">ยอดรวม</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* User Upcoming Events Tab */}
+          <TabsContent value="upcoming" className="space-y-4">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">อีเวนต์ที่กำลังจะมาถึง</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+              {upcomingEvents.map(event => (
+                <div key={event.id} className="bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 w-full border-0 shadow-lg rounded-lg p-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-bold text-gray-900 text-lg">{event.eventName}</h3>
+                        <p className="text-sm text-gray-600 flex items-center mt-1">
+                          <Calendar className="w-4 h-4 mr-1" />
+                          {event.eventDate}
+                        </p>
+                      </div>
+                      <Badge className={`${
+                        event.status === 'upcoming' ? 'bg-green-100 text-green-700' :
+                        event.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                        event.status === 'calculating' ? 'bg-yellow-100 text-yellow-700' :
+                        event.status === 'awaiting_payment' ? 'bg-orange-100 text-orange-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {t(`events.${event.status}`)}
+                      </Badge>
+                    </div>
+                    
+                    <div className="flex items-center text-gray-600 text-sm">
+                      <MapPin className="w-4 h-4 mr-2" />
+                      <span>{event.venue}</span>
+                    </div>
+                    
+                    <div className="flex justify-between text-sm">
+                      <span className="flex items-center">
+                        <Users className="w-4 h-4 mr-1" />
+                        {event.players.filter(p => p.status === 'registered').length}/{event.maxPlayers}
+                      </span>
+                      <span className="flex items-center">
+                        <Clock className="w-4 h-4 mr-1" />
+                        {event.courts.length} สนาม
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </TabsContent>
 
           <TabsContent value="registration" className="space-y-4">

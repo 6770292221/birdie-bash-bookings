@@ -6,23 +6,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Plus, Minus, MapPin } from 'lucide-react';
 import { Court, Event } from '@/pages/Index';
 import { useLanguage } from '@/contexts/LanguageContext';
+import PlacesAutocomplete from './PlacesAutocomplete';
 
 interface CreateEventFormProps {
   onSubmit: (eventData: Omit<Event, 'id' | 'players' | 'status' | 'createdBy'>) => void;
   onCancel: () => void;
+  editEvent?: Event | null;
+  onUpdateEvent?: (eventId: string, updates: Partial<Event>) => void;
 }
 
-const CreateEventForm = ({ onSubmit, onCancel }: CreateEventFormProps) => {
+const CreateEventForm = ({ onSubmit, onCancel, editEvent, onUpdateEvent }: CreateEventFormProps) => {
   const { t } = useLanguage();
-  const [eventName, setEventName] = useState('');
-  const [eventDate, setEventDate] = useState('');
-  const [venue, setVenue] = useState('');
-  const [maxPlayers, setMaxPlayers] = useState(12);
-  const [shuttlecockPrice, setShuttlecockPrice] = useState(20);
-  const [courtHourlyRate, setCourtHourlyRate] = useState(150);
-  const [courts, setCourts] = useState<Court[]>([
-    { courtNumber: 1, startTime: '20:00', endTime: '22:00' }
-  ]);
+  const isEditing = !!editEvent;
+  
+  const [eventName, setEventName] = useState(editEvent?.eventName || '');
+  const [eventDate, setEventDate] = useState(editEvent?.eventDate || '');
+  const [venue, setVenue] = useState(editEvent?.venue || '');
+  const [maxPlayers, setMaxPlayers] = useState(editEvent?.maxPlayers || 12);
+  const [shuttlecockPrice, setShuttlecockPrice] = useState(editEvent?.shuttlecockPrice || 20);
+  const [courtHourlyRate, setCourtHourlyRate] = useState(editEvent?.courtHourlyRate || 150);
+  const [courts, setCourts] = useState<Court[]>(
+    editEvent?.courts && editEvent.courts.length > 0 
+      ? editEvent.courts 
+      : [{ courtNumber: 1, startTime: '20:00', endTime: '22:00' }]
+  );
 
   // Get today's date in YYYY-MM-DD format for min date
   const today = new Date().toISOString().split('T')[0];
@@ -60,25 +67,44 @@ const CreateEventForm = ({ onSubmit, onCancel }: CreateEventFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      eventName,
-      eventDate,
-      venue,
-      maxPlayers,
-      shuttlecockPrice,
-      courtHourlyRate,
-      courts,
-    });
+    
+    if (isEditing && editEvent && onUpdateEvent) {
+      // Update existing event
+      onUpdateEvent(editEvent.id, {
+        eventName,
+        eventDate,
+        venue,
+        maxPlayers,
+        shuttlecockPrice,
+        courtHourlyRate,
+        courts,
+      });
+    } else {
+      // Create new event
+      onSubmit({
+        eventName,
+        eventDate,
+        venue,
+        maxPlayers,
+        shuttlecockPrice,
+        courtHourlyRate,
+        courts,
+      });
+    }
   };
 
   const totalHours = calculateTotalCourtsHours();
   const estimatedCost = totalHours * courtHourlyRate;
 
   return (
-    <Card className="bg-white/80 backdrop-blur-sm border-blue-200">
+    <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl hover:shadow-3xl transition-all duration-300">
       <CardHeader>
-        <CardTitle className="text-2xl text-blue-900">{t('events.create')}</CardTitle>
-        <CardDescription>{t('app.subtitle')}</CardDescription>
+        <CardTitle className="text-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-teal-600 bg-clip-text text-transparent font-bold">
+          {isEditing ? 'แก้ไขอีเวนต์' : t('events.create')}
+        </CardTitle>
+        <CardDescription>
+          {isEditing ? 'แก้ไขข้อมูลอีเวนต์' : t('app.subtitle')}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -92,7 +118,7 @@ const CreateEventForm = ({ onSubmit, onCancel }: CreateEventFormProps) => {
                 onChange={(e) => setEventName(e.target.value)}
                 placeholder="e.g., Weekly Badminton Session"
                 required
-                className="border-blue-200 focus:border-blue-500"
+                className="border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
               />
             </div>
 
@@ -105,24 +131,19 @@ const CreateEventForm = ({ onSubmit, onCancel }: CreateEventFormProps) => {
                 onChange={(e) => setEventDate(e.target.value)}
                 min={today}
                 required
-                className="border-blue-200 focus:border-blue-500"
+                className="border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
               />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="venue" className="text-gray-700 font-medium">{t('form.venue')}</Label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                id="venue"
-                value={venue}
-                onChange={(e) => setVenue(e.target.value)}
-                placeholder="Enter venue address or name"
-                required
-                className="pl-10 border-blue-200 focus:border-blue-500"
-              />
-            </div>
+            <PlacesAutocomplete
+              value={venue}
+              onChange={setVenue}
+              placeholder="Search for badminton courts in Thailand"
+              className=""
+            />
           </div>
 
           {/* Pricing and Capacity */}
@@ -136,7 +157,7 @@ const CreateEventForm = ({ onSubmit, onCancel }: CreateEventFormProps) => {
                 onChange={(e) => setMaxPlayers(Number(e.target.value))}
                 min="2"
                 required
-                className="border-blue-200 focus:border-blue-500"
+                className="border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
               />
             </div>
 
@@ -150,7 +171,7 @@ const CreateEventForm = ({ onSubmit, onCancel }: CreateEventFormProps) => {
                 min="0"
                 step="0.01"
                 required
-                className="border-blue-200 focus:border-blue-500"
+                className="border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
               />
             </div>
 
@@ -164,7 +185,7 @@ const CreateEventForm = ({ onSubmit, onCancel }: CreateEventFormProps) => {
                 min="0"
                 step="0.01"
                 required
-                className="border-blue-200 focus:border-blue-500"
+                className="border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
               />
             </div>
           </div>
@@ -177,7 +198,7 @@ const CreateEventForm = ({ onSubmit, onCancel }: CreateEventFormProps) => {
                 type="button"
                 onClick={addCourt}
                 size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 {t('form.add_court')}
@@ -185,7 +206,7 @@ const CreateEventForm = ({ onSubmit, onCancel }: CreateEventFormProps) => {
             </div>
 
             {courts.map((court, index) => (
-              <div key={index} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <div key={index} className="bg-gradient-to-br from-gray-50 to-blue-50 p-4 rounded-xl border border-gray-200 shadow-md hover:shadow-lg transition-all duration-300">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                   <div className="space-y-2">
                     <Label className="text-gray-600">{t('form.court_number')}</Label>
@@ -194,7 +215,7 @@ const CreateEventForm = ({ onSubmit, onCancel }: CreateEventFormProps) => {
                       value={court.courtNumber}
                       onChange={(e) => updateCourt(index, 'courtNumber', Number(e.target.value))}
                       min="1"
-                      className="border-gray-300"
+                      className="border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
                     />
                   </div>
 
@@ -204,7 +225,7 @@ const CreateEventForm = ({ onSubmit, onCancel }: CreateEventFormProps) => {
                       type="time"
                       value={court.startTime}
                       onChange={(e) => updateCourt(index, 'startTime', e.target.value)}
-                      className="border-gray-300"
+                      className="border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
                     />
                   </div>
 
@@ -214,7 +235,7 @@ const CreateEventForm = ({ onSubmit, onCancel }: CreateEventFormProps) => {
                       type="time"
                       value={court.endTime}
                       onChange={(e) => updateCourt(index, 'endTime', e.target.value)}
-                      className="border-gray-300"
+                      className="border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
                     />
                   </div>
 
@@ -225,7 +246,7 @@ const CreateEventForm = ({ onSubmit, onCancel }: CreateEventFormProps) => {
                         onClick={() => removeCourt(index)}
                         size="sm"
                         variant="outline"
-                        className="border-red-300 text-red-600 hover:bg-red-50"
+                        className="border-red-300 text-red-600 hover:bg-red-50 hover:shadow-md transform hover:-translate-y-0.5 transition-all duration-200"
                       >
                         <Minus className="w-4 h-4" />
                       </Button>
@@ -236,8 +257,8 @@ const CreateEventForm = ({ onSubmit, onCancel }: CreateEventFormProps) => {
             ))}
 
             {/* Cost Summary */}
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <h4 className="font-medium text-blue-900 mb-2">Cost Summary</h4>
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200 shadow-lg">
+              <h4 className="font-bold text-blue-900 mb-3 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Cost Summary</h4>
               <div className="text-sm space-y-1">
                 <div className="flex justify-between">
                   <span>Total Court Hours:</span>
@@ -259,15 +280,15 @@ const CreateEventForm = ({ onSubmit, onCancel }: CreateEventFormProps) => {
           <div className="flex gap-4 pt-4">
             <Button 
               type="submit"
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+              className="flex-1 bg-gradient-to-r from-blue-600 via-purple-600 to-teal-600 hover:from-blue-700 hover:via-purple-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 font-medium"
             >
-              {t('form.create_event')}
+              {isEditing ? 'อัพเดทอีเวนต์' : t('form.create_event')}
             </Button>
             <Button 
               type="button" 
               onClick={onCancel}
               variant="outline"
-              className="flex-1 border-gray-300"
+              className="flex-1 border-gray-300 hover:bg-gray-50 hover:shadow-md transform hover:-translate-y-0.5 transition-all duration-200 font-medium"
             >
               {t('form.cancel')}
             </Button>
