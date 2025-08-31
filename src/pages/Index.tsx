@@ -13,7 +13,6 @@ import AuthButtons from '@/components/AuthButtons';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export interface Court {
@@ -56,94 +55,95 @@ const IndexContent = () => {
   const { t } = useLanguage();
   const { user, logout, isAdmin, loading } = useAuth();
   const { toast } = useToast();
-  const [events, setEvents] = useState<Event[]>([]);
+  // Mock events data
+  const [events, setEvents] = useState<Event[]>([
+    {
+      id: '1',
+      eventName: 'ทัวร์นาเมนต์แบดมินตันประจำเดือน',
+      eventDate: '2024-01-20',
+      venue: 'สนามแบดมินตัน ABC',
+      maxPlayers: 12,
+      shuttlecockPrice: 20,
+      courtHourlyRate: 150,
+      shuttlecocksUsed: 8,
+      status: 'upcoming',
+      createdBy: 'bc235d14-40db-4bd7-82d6-edeb0a19c48e',
+      courts: [
+        {
+          id: '1',
+          courtNumber: 1,
+          startTime: '09:00',
+          endTime: '12:00',
+          actualStartTime: '09:15',
+          actualEndTime: '11:45'
+        },
+        {
+          id: '2',
+          courtNumber: 2,
+          startTime: '09:00',
+          endTime: '12:00'
+        }
+      ],
+      players: [
+        {
+          id: '1',
+          name: 'สมชาย ใจดี',
+          email: 'somchai@example.com',
+          startTime: '09:00',
+          endTime: '12:00',
+          registrationTime: new Date('2024-01-15T10:00:00'),
+          status: 'registered',
+          userId: 'bc235d14-40db-4bd7-82d6-edeb0a19c48e'
+        },
+        {
+          id: '2',
+          name: 'สมหญิง รักเกม',
+          email: 'somying@example.com',
+          startTime: '09:00',
+          endTime: '12:00',
+          registrationTime: new Date('2024-01-15T11:00:00'),
+          status: 'registered'
+        }
+      ]
+    },
+    {
+      id: '2',
+      eventName: 'เทรนนิ่งแบดมินตันเข้มข้น',
+      eventDate: '2024-01-10',
+      venue: 'สนามแบดมินตัน XYZ',
+      maxPlayers: 8,
+      shuttlecockPrice: 25,
+      courtHourlyRate: 200,
+      shuttlecocksUsed: 12,
+      status: 'completed',
+      createdBy: 'bc235d14-40db-4bd7-82d6-edeb0a19c48e',
+      courts: [
+        {
+          id: '3',
+          courtNumber: 1,
+          startTime: '18:00',
+          endTime: '21:00',
+          actualStartTime: '18:00',
+          actualEndTime: '21:00'
+        }
+      ],
+      players: [
+        {
+          id: '3',
+          name: 'วิชัย ซ้อมหนัก',
+          email: 'wichai@example.com',
+          startTime: '18:00',
+          endTime: '21:00',
+          registrationTime: new Date('2024-01-08T10:00:00'),
+          status: 'registered'
+        }
+      ]
+    }
+  ]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showManagement, setShowManagement] = useState(false);
-  const [eventsLoading, setEventsLoading] = useState(true);
-
-  // Fetch events from Supabase
-  const fetchEvents = async () => {
-    try {
-      setEventsLoading(true);
-      
-      // Fetch events with courts and players
-      const { data: eventsData, error: eventsError } = await supabase
-        .from('events')
-        .select('*')
-        .order('event_date', { ascending: true });
-
-      if (eventsError) throw eventsError;
-
-      // Fetch courts for each event
-      const { data: courtsData, error: courtsError } = await supabase
-        .from('courts')
-        .select('*')
-        .order('court_number', { ascending: true });
-
-      if (courtsError) throw courtsError;
-
-      // Fetch players for each event
-      const { data: playersData, error: playersError } = await supabase
-        .from('players')
-        .select('*')
-        .order('registration_time', { ascending: true });
-
-      if (playersError) throw playersError;
-
-      // Combine data
-      const formattedEvents: Event[] = eventsData.map(event => ({
-        id: event.id,
-        eventName: event.event_name,
-        eventDate: event.event_date,
-        venue: event.venue,
-        maxPlayers: event.max_players,
-        shuttlecockPrice: Number(event.shuttlecock_price),
-        courtHourlyRate: Number(event.court_hourly_rate),
-        shuttlecocksUsed: event.shuttlecocks_used || 0,
-        status: event.status as 'upcoming' | 'completed' | 'cancelled',
-        createdBy: event.created_by,
-        courts: courtsData
-          .filter(court => court.event_id === event.id)
-          .map(court => ({
-            id: court.id,
-            courtNumber: court.court_number,
-            startTime: court.start_time,
-            endTime: court.end_time,
-            actualStartTime: court.actual_start_time,
-            actualEndTime: court.actual_end_time,
-          })),
-        players: playersData
-          .filter(player => player.event_id === event.id)
-          .map(player => ({
-            id: player.id,
-            name: player.name,
-            email: player.email,
-            startTime: player.start_time,
-            endTime: player.end_time,
-            registrationTime: new Date(player.registration_time),
-            status: player.status as 'registered' | 'waitlist' | 'cancelled',
-            cancelledOnEventDay: player.cancelled_on_event_day || false,
-            userId: player.user_id,
-          }))
-      }));
-
-      setEvents(formattedEvents);
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load events",
-        variant: "destructive",
-      });
-    } finally {
-      setEventsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchEvents();
-  }, []);
+  const [eventsLoading, setEventsLoading] = useState(false);
 
   if (loading || eventsLoading) {
     return (
@@ -156,7 +156,7 @@ const IndexContent = () => {
     );
   }
 
-  const handleCreateEvent = async (eventData: Omit<Event, 'id' | 'players' | 'status' | 'createdBy'>) => {
+  const handleCreateEvent = (eventData: Omit<Event, 'id' | 'players' | 'status' | 'createdBy'>) => {
     if (!user) {
       toast({
         title: "Error",
@@ -166,200 +166,98 @@ const IndexContent = () => {
       return;
     }
 
-    try {
-      // Create event
-      const { data: eventResult, error: eventError } = await supabase
-        .from('events')
-        .insert({
-          event_name: eventData.eventName,
-          event_date: eventData.eventDate,
-          venue: eventData.venue,
-          max_players: eventData.maxPlayers,
-          shuttlecock_price: eventData.shuttlecockPrice,
-          court_hourly_rate: eventData.courtHourlyRate,
-          created_by: user.id,
-        })
-        .select()
-        .single();
+    const newEvent: Event = {
+      ...eventData,
+      id: String(events.length + 1),
+      players: [],
+      status: 'upcoming',
+      createdBy: user.id,
+    };
 
-      if (eventError) throw eventError;
-
-      // Create courts
-      const courtsToInsert = eventData.courts.map(court => ({
-        event_id: eventResult.id,
-        court_number: court.courtNumber,
-        start_time: court.startTime,
-        end_time: court.endTime,
-      }));
-
-      const { error: courtsError } = await supabase
-        .from('courts')
-        .insert(courtsToInsert);
-
-      if (courtsError) throw courtsError;
-
-      setShowCreateForm(false);
-      fetchEvents(); // Refresh events list
-      
-      toast({
-        title: "Success",
-        description: "Event created successfully",
-      });
-    } catch (error) {
-      console.error('Error creating event:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create event",
-        variant: "destructive",
-      });
-    }
+    setEvents([...events, newEvent]);
+    setShowCreateForm(false);
+    
+    toast({
+      title: "Success",
+      description: "Event created successfully",
+    });
   };
 
-  const handlePlayerRegistration = async (eventId: string, playerData: Omit<Player, 'id' | 'registrationTime' | 'status'>) => {
-    try {
-      const event = events.find(e => e.id === eventId);
-      if (!event) return;
+  const handlePlayerRegistration = (eventId: string, playerData: Omit<Player, 'id' | 'registrationTime' | 'status'>) => {
+    const event = events.find(e => e.id === eventId);
+    if (!event) return;
 
-      const isWaitlist = event.players.filter(p => p.status === 'registered').length >= event.maxPlayers;
+    const isWaitlist = event.players.filter(p => p.status === 'registered').length >= event.maxPlayers;
+    
+    const newPlayer: Player = {
+      ...playerData,
+      id: String(Date.now()),
+      registrationTime: new Date(),
+      status: isWaitlist ? 'waitlist' : 'registered',
+      userId: user?.id,
+    };
 
-      const { error } = await supabase
-        .from('players')
-        .insert({
-          event_id: eventId,
-          name: playerData.name,
-          email: playerData.email || 'guest@example.com',
-          start_time: playerData.startTime,
-          end_time: playerData.endTime,
-          status: isWaitlist ? 'waitlist' : 'registered',
-          user_id: user?.id,
-        });
-
-      if (error) throw error;
-
-      fetchEvents(); // Refresh events list
-      
-      toast({
-        title: "Registration Successful",
-        description: isWaitlist ? "You've been added to the waitlist" : "You've been registered for the event",
-      });
-    } catch (error) {
-      console.error('Error registering player:', error);
-      toast({
-        title: "Error",
-        description: "Failed to register for event",
-        variant: "destructive",
-      });
-    }
+    const updatedEvents = events.map(e => 
+      e.id === eventId 
+        ? { ...e, players: [...e.players, newPlayer] }
+        : e
+    );
+    
+    setEvents(updatedEvents);
+    
+    toast({
+      title: "Registration Successful", 
+      description: isWaitlist ? "You've been added to the waitlist" : "You've been registered for the event",
+    });
   };
 
-  const handleCancelRegistration = async (eventId: string, playerId: string, isEventDay: boolean = false) => {
-    try {
-      const { error } = await supabase
-        .from('players')
-        .update({
-          status: 'cancelled',
-          cancelled_on_event_day: isEventDay,
-        })
-        .eq('id', playerId);
-
-      if (error) throw error;
-
-      // If someone cancelled and there are waitlist players, move the first waitlist player to registered
-      const event = events.find(e => e.id === eventId);
-      if (event) {
-        const waitlistPlayers = event.players.filter(p => p.status === 'waitlist');
-        if (waitlistPlayers.length > 0) {
-          const firstWaitlist = waitlistPlayers[0];
-          await supabase
-            .from('players')
-            .update({ status: 'registered' })
-            .eq('id', firstWaitlist.id);
-        }
-      }
-
-      fetchEvents(); // Refresh events list
-      
-      toast({
-        title: "Registration Cancelled",
-        description: isEventDay 
-          ? "Registration cancelled. 100 THB fine applied for same-day cancellation."
-          : "Registration cancelled successfully.",
-        variant: isEventDay ? "destructive" : "default",
-      });
-    } catch (error) {
-      console.error('Error cancelling registration:', error);
-      toast({
-        title: "Error",
-        description: "Failed to cancel registration",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleUpdateEvent = async (eventId: string, updates: Partial<Event>) => {
-    try {
-      // Update event
-      if (updates.shuttlecocksUsed !== undefined || updates.status) {
-        const { error: eventError } = await supabase
-          .from('events')
-          .update({
-            ...(updates.shuttlecocksUsed !== undefined && { shuttlecocks_used: updates.shuttlecocksUsed }),
-            ...(updates.status && { status: updates.status }),
-          })
-          .eq('id', eventId);
-
-        if (eventError) throw eventError;
-      }
-
-      // Update courts if provided
-      if (updates.courts) {
-        // Delete existing courts and recreate them
-        await supabase.from('courts').delete().eq('event_id', eventId);
+  const handleCancelRegistration = (eventId: string, playerId: string, isEventDay: boolean = false) => {
+    const updatedEvents = events.map(e => {
+      if (e.id === eventId) {
+        const updatedPlayers = e.players.map(p => 
+          p.id === playerId 
+            ? { ...p, status: 'cancelled' as const, cancelledOnEventDay: isEventDay }
+            : p
+        );
         
-        const courtsToInsert = updates.courts.map(court => ({
-          event_id: eventId,
-          court_number: court.courtNumber,
-          start_time: court.startTime,
-          end_time: court.endTime,
-          actual_start_time: court.actualStartTime,
-          actual_end_time: court.actualEndTime,
-        }));
-
-        const { error: courtsError } = await supabase
-          .from('courts')
-          .insert(courtsToInsert);
-
-        if (courtsError) throw courtsError;
-      }
-
-      // Update players if provided
-      if (updates.players) {
-        for (const player of updates.players) {
-          const { error } = await supabase
-            .from('players')
-            .update({
-              name: player.name,
-              email: player.email,
-              start_time: player.startTime,
-              end_time: player.endTime,
-              status: player.status,
-              cancelled_on_event_day: player.cancelledOnEventDay,
-            })
-            .eq('id', player.id);
-
-          if (error) throw error;
+        // If someone cancelled and there are waitlist players, move the first waitlist player to registered
+        const waitlistPlayers = updatedPlayers.filter(p => p.status === 'waitlist');
+        if (waitlistPlayers.length > 0) {
+          const firstWaitlist = waitlistPlayers.find(p => p.status === 'waitlist');
+          if (firstWaitlist) {
+            firstWaitlist.status = 'registered';
+          }
         }
+        
+        return { ...e, players: updatedPlayers };
       }
+      return e;
+    });
+    
+    setEvents(updatedEvents);
+    
+    toast({
+      title: "Registration Cancelled",
+      description: isEventDay 
+        ? "Registration cancelled. 100 THB fine applied for same-day cancellation."
+        : "Registration cancelled successfully.",
+      variant: isEventDay ? "destructive" : "default",
+    });
+  };
 
-      fetchEvents(); // Refresh events list
-    } catch (error) {
-      console.error('Error updating event:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update event",
-        variant: "destructive",
-      });
-    }
+  const handleUpdateEvent = (eventId: string, updates: Partial<Event>) => {
+    const updatedEvents = events.map(e => 
+      e.id === eventId 
+        ? { ...e, ...updates }
+        : e
+    );
+    
+    setEvents(updatedEvents);
+    
+    toast({
+      title: "Success",
+      description: "Event updated successfully",
+    });
   };
 
   const handleSelectEvent = (event: Event) => {
