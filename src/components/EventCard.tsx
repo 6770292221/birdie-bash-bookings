@@ -200,7 +200,7 @@ const EventCard = ({ event, onSelectEvent, onCancelRegistration, onEditEvent, on
                 onClick={() => onSelectEvent(event)}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white h-10"
               >
-                <Settings className="w-4 h-4 mr-2" />
+                <i className="fas fa-calculator mr-2"></i>
                 Cost Calculation
               </Button>
             )}

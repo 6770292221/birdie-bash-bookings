@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, Clock, Plus, LogOut, Shield, Menu, CreditCard, History, Activity, TrendingUp } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Plus, LogOut, Shield, Menu, CreditCard, History, Activity, TrendingUp, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -56,6 +56,7 @@ const IndexContent = () => {
   const { user, logout, isAdmin, loading } = useAuth();
   const { toast } = useToast();
   // Mock events data
+  const [selectedPaymentDetail, setSelectedPaymentDetail] = useState<any>(null);
   const [events, setEvents] = useState<Event[]>([
     {
       id: '1',
@@ -359,7 +360,7 @@ const IndexContent = () => {
 
           <Card className="bg-white/70 backdrop-blur-sm border-green-200">
             <CardContent className="p-4 text-center">
-              <Users className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 mx-auto mb-2" />
+              <i className="fas fa-users text-green-600 mx-auto mb-2 text-2xl"></i>
               <p className="text-xl sm:text-2xl font-bold text-gray-900">
                 {upcomingEvents.reduce((sum, event) => sum + event.players.filter(p => p.status === 'registered').length, 0)}
               </p>
@@ -386,6 +387,7 @@ const IndexContent = () => {
           </Card>
         </div>
 
+
         {/* Main Content - Tab Interface */}
         <Tabs defaultValue={!user ? "upcoming" : (isAdmin ? "management" : "upcoming")} className="space-y-4">
           <TabsList className={`grid w-full ${
@@ -396,9 +398,9 @@ const IndexContent = () => {
             {!user ? (
               <TabsTrigger 
                 value="upcoming" 
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base w-full"
               >
-                <Calendar className="w-4 h-4 mr-2" />
+                <i className="fas fa-calendar-alt w-4 h-4 mr-2"></i>
                 อีเวนต์ที่กำลังจะมา
               </TabsTrigger>
             ) : isAdmin ? (
@@ -407,21 +409,21 @@ const IndexContent = () => {
                   value="management" 
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
                 >
-                  <Shield className="w-4 h-4 mr-2" />
+                  <i className="fas fa-cog w-4 h-4 mr-2"></i>
                   จัดการกิจกรรม
                 </TabsTrigger>
                 <TabsTrigger 
                   value="payment" 
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
                 >
-                  <CreditCard className="w-4 h-4 mr-2" />
+                  <i className="fas fa-credit-card w-4 h-4 mr-2"></i>
                   การชำระเงิน
                 </TabsTrigger>
                 <TabsTrigger 
                   value="admin-history" 
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
                 >
-                  <History className="w-4 h-4 mr-2" />
+                  <i className="fas fa-history w-4 h-4 mr-2"></i>
                   ประวัติ
                 </TabsTrigger>
               </>
@@ -438,14 +440,14 @@ const IndexContent = () => {
                   value="registration" 
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
                 >
-                  <Users className="w-4 h-4 mr-2" />
+                  <i className="fas fa-user-plus w-4 h-4 mr-2"></i>
                   ลงทะเบียนผู้เล่น
                 </TabsTrigger>
                 <TabsTrigger 
                   value="user-history" 
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
                 >
-                  <Activity className="w-4 h-4 mr-2" />
+                  <i className="fas fa-chart-line w-4 h-4 mr-2"></i>
                   ประวัติ
                 </TabsTrigger>
               </>
@@ -518,7 +520,7 @@ const IndexContent = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
                 <CardContent className="p-4 text-center">
-                  <TrendingUp className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                  <i className="fas fa-chart-line text-green-600 mx-auto mb-2 text-2xl"></i>
                   <p className="text-2xl font-bold text-green-700">฿2,450</p>
                   <p className="text-sm text-green-600">ยอดที่เก็บได้แล้ว</p>
                 </CardContent>
@@ -532,7 +534,7 @@ const IndexContent = () => {
               </Card>
               <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
                 <CardContent className="p-4 text-center">
-                  <Activity className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                  <i className="fas fa-calculator text-blue-600 mx-auto mb-2 text-2xl"></i>
                   <p className="text-2xl font-bold text-blue-700">฿800</p>
                   <p className="text-sm text-blue-600">รอคำนวณ</p>
                 </CardContent>
@@ -545,19 +547,59 @@ const IndexContent = () => {
               <div className="space-y-3">
                 {/* Mock pending payment data */}
                 {[
-                  { id: 1, event: "แบดมินตัน สนามใหญ่", players: 8, amount: 450, status: 'awaiting_payment' },
-                  { id: 2, event: "แบดมินตัน เย็นวันศุกร์", players: 6, amount: 750, status: 'awaiting_payment' },
+                  { 
+                    id: 1, 
+                    event: "แบดมินตัน สนามใหญ่", 
+                    players: 8, 
+                    amount: 1450, 
+                    status: 'awaiting_payment',
+                    eventDate: "2024-12-30",
+                    venue: "สนามกีฬาแห่งชาติ",
+                    playerDetails: [
+                      { name: "สมชาย ใจดี", amount: 180, status: "pending" },
+                      { name: "สมหญิง รักสุข", amount: 180, status: "pending" },
+                      { name: "วิชัย สุขใส", amount: 200, status: "pending" },
+                      { name: "มานี สวยงาม", amount: 180, status: "pending" },
+                      { name: "สมศักดิ์ ดีมาก", amount: 180, status: "pending" },
+                      { name: "นิรันดร์ เก่งกาจ", amount: 180, status: "pending" },
+                      { name: "ปรีชา ฉลาดเฉลียว", amount: 180, status: "pending" },
+                      { name: "สุภาพ อ่อนโยน", amount: 230, status: "pending", note: "มาสาย +50" }
+                    ]
+                  },
+                  { 
+                    id: 2, 
+                    event: "แบดมินตัน เย็นวันศุกร์", 
+                    players: 6, 
+                    amount: 1080, 
+                    status: 'awaiting_payment',
+                    eventDate: "2024-12-27",
+                    venue: "สโมสรกีฬาบางแสน",
+                    playerDetails: [
+                      { name: "อรุณ ใสสด", amount: 180, status: "pending" },
+                      { name: "วิมล สดใส", amount: 180, status: "pending" },
+                      { name: "กิตติ มั่นใจ", amount: 180, status: "pending" },
+                      { name: "อนุชา เด็ดเดี่ยว", amount: 180, status: "pending" },
+                      { name: "สุทิน แข็งแกร่ง", amount: 180, status: "pending" },
+                      { name: "มงคล เฮงสุด", amount: 180, status: "pending" }
+                    ]
+                  },
                 ].map(payment => (
-                  <Card key={payment.id} className="bg-orange-50 border-orange-200">
+                  <Card 
+                    key={payment.id} 
+                    className="bg-orange-50 border-orange-200 cursor-pointer hover:bg-orange-100 transition-all"
+                    onClick={() => setSelectedPaymentDetail(payment)}
+                  >
                     <CardContent className="p-4">
                       <div className="flex justify-between items-center">
                         <div>
                           <h4 className="font-medium text-gray-900">{payment.event}</h4>
-                          <p className="text-sm text-gray-600">{payment.players} ผู้เล่น</p>
+                          <p className="text-sm text-gray-600">{payment.players} ผู้เล่น • {payment.eventDate}</p>
+                          <p className="text-xs text-gray-500">{payment.venue}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-lg font-bold text-orange-700">฿{payment.amount}</p>
                           <Badge className="bg-orange-100 text-orange-700 text-xs">รอจ่ายเงิน</Badge>
+                          <p className="text-xs text-gray-500 mt-1">คลิกดูรายละเอียด</p>
                         </div>
                       </div>
                     </CardContent>
@@ -899,6 +941,101 @@ const IndexContent = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Payment Detail Modal */}
+        {selectedPaymentDetail && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <Card className="bg-white max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="flex items-center text-lg">
+                      <i className="fas fa-credit-card mr-2 text-orange-600"></i>
+                      รายละเอียดการชำระเงิน
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      {selectedPaymentDetail.event} • {selectedPaymentDetail.eventDate}
+                    </CardDescription>
+                    <p className="text-sm text-gray-600">{selectedPaymentDetail.venue}</p>
+                  </div>
+                  <Button 
+                    onClick={() => setSelectedPaymentDetail(null)} 
+                    variant="outline" 
+                    size="sm"
+                    className="shrink-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                
+                {/* Summary */}
+                <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium text-gray-900">ยอดรวมทั้งหมด</p>
+                      <p className="text-sm text-gray-600">{selectedPaymentDetail.players} ผู้เล่น</p>
+                    </div>
+                    <p className="text-2xl font-bold text-orange-700">฿{selectedPaymentDetail.amount}</p>
+                  </div>
+                </div>
+
+                {/* Player Payment Details */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-gray-900">รายละเอียดการจ่ายรายบุคคล</h3>
+                  <div className="space-y-2">
+                    {selectedPaymentDetail.playerDetails.map((player: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                            {player.name.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{player.name}</p>
+                            {player.note && (
+                              <p className="text-xs text-red-600">{player.note}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-gray-900">฿{player.amount}</p>
+                          <Badge className="bg-orange-100 text-orange-700 text-xs">
+                            <Clock className="w-3 h-3 mr-1" />
+                            รอจ่าย
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button 
+                    onClick={() => {
+                      toast({
+                        title: "ส่งการแจ้งเตือนแล้ว",
+                        description: "ส่งการแจ้งเตือนชำระเงินให้ผู้เล่นทั้งหมดแล้ว",
+                      });
+                    }}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    แจ้งเตือนทั้งหมด
+                  </Button>
+                  <Button 
+                    onClick={() => setSelectedPaymentDetail(null)} 
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    ปิด
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Event Management Modal - Admin Only */}
         {isAdmin && showManagement && selectedEvent && (
