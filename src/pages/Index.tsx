@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Calendar, MapPin, Users, Clock, Plus, LogOut, Shield, Menu, CreditCard, History, Activity, TrendingUp, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,6 +57,52 @@ const IndexContent = () => {
   const { toast } = useToast();
   // Mock events data
   const [selectedPaymentDetail, setSelectedPaymentDetail] = useState<any>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notificationRef = useRef<HTMLDivElement>(null);
+  
+  // Mock notifications data
+  const [notifications, setNotifications] = useState([
+    {
+      id: 1,
+      type: 'payment',
+      title: 'การชำระเงินใหม่',
+      message: 'สมชาย ใจดี ชำระเงินแล้ว ฿180',
+      time: '5 นาทีที่แล้ว',
+      read: false,
+      icon: 'fa-credit-card',
+      color: 'text-green-600'
+    },
+    {
+      id: 2,
+      type: 'registration',
+      title: 'ผู้เล่นลงทะเบียนใหม่',
+      message: 'วิชัย สุขใส เข้าร่วมอีเวนต์แบดมินตัน สนามใหญ่',
+      time: '15 นาทีที่แล้ว',
+      read: false,
+      icon: 'fa-user-plus',
+      color: 'text-blue-600'
+    },
+    {
+      id: 3,
+      type: 'reminder',
+      title: 'เตือนความจำ',
+      message: 'อีเวนต์แบดมินตัน เย็นวันศุกร์ จะเริ่มในอีก 2 ชั่วโมง',
+      time: '30 นาทีที่แล้ว',
+      read: true,
+      icon: 'fa-bell',
+      color: 'text-amber-600'
+    },
+    {
+      id: 4,
+      type: 'cancel',
+      title: 'ยกเลิกการลงทะเบียน',
+      message: 'มานี สวยงาม ยกเลิกการเข้าร่วมอีเวนต์',
+      time: '1 ชั่วโมงที่แล้ว',
+      read: true,
+      icon: 'fa-user-times',
+      color: 'text-red-600'
+    }
+  ]);
   const [events, setEvents] = useState<Event[]>([
     {
       id: '1',
@@ -269,6 +315,37 @@ const IndexContent = () => {
   const upcomingEvents = events.filter(e => e.status === 'upcoming');
   const completedEvents = events.filter(e => e.status === 'completed');
 
+  // Notification functions
+  const unreadCount = notifications.filter(n => !n.read).length;
+  
+  const markAsRead = (notificationId: number) => {
+    setNotifications(prev => 
+      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+    );
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const removeNotification = (notificationId: number) => {
+    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+  };
+
+  // Close notifications dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+
+    if (showNotifications) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showNotifications]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4">
@@ -287,6 +364,119 @@ const IndexContent = () => {
             </div>
 
             <div className="flex items-center space-x-2">
+              {user && (
+                <div className="relative" ref={notificationRef}>
+                  <Button 
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    variant="outline" 
+                    size="sm" 
+                    className="p-2 relative"
+                  >
+                    <i className="fas fa-bell h-4 w-4"></i>
+                    {unreadCount > 0 && (
+                      <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </div>
+                    )}
+                  </Button>
+
+                  {/* Notifications Dropdown */}
+                  {showNotifications && (
+                    <div className="absolute right-0 top-full mt-2 w-80 max-w-sm bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                      <div className="p-3 border-b border-gray-200">
+                        <div className="flex justify-between items-center">
+                          <h3 className="font-semibold text-gray-900">การแจ้งเตือน</h3>
+                          <div className="flex space-x-2">
+                            {unreadCount > 0 && (
+                              <Button 
+                                onClick={markAllAsRead}
+                                variant="ghost" 
+                                size="sm"
+                                className="text-xs"
+                              >
+                                อ่านทั้งหมด
+                              </Button>
+                            )}
+                            <Button 
+                              onClick={() => setShowNotifications(false)}
+                              variant="ghost" 
+                              size="sm"
+                              className="p-1"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="max-h-64 overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <div className="p-4 text-center text-gray-500">
+                            <i className="fas fa-bell-slash mb-2 text-2xl"></i>
+                            <p>ไม่มีการแจ้งเตือน</p>
+                          </div>
+                        ) : (
+                          notifications.map(notification => (
+                            <div 
+                              key={notification.id}
+                              className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
+                                !notification.read ? 'bg-blue-50' : ''
+                              }`}
+                              onClick={() => markAsRead(notification.id)}
+                            >
+                              <div className="flex items-start space-x-3">
+                                <div className={`mt-1 ${notification.color}`}>
+                                  <i className={`fas ${notification.icon} text-sm`}></i>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex justify-between items-start">
+                                    <p className={`text-sm font-medium text-gray-900 ${!notification.read ? 'font-semibold' : ''}`}>
+                                      {notification.title}
+                                    </p>
+                                    {!notification.read && (
+                                      <div className="ml-2 h-2 w-2 bg-blue-500 rounded-full"></div>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                                  <p className="text-xs text-gray-400 mt-1">{notification.time}</p>
+                                </div>
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeNotification(notification.id);
+                                  }}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="p-1 opacity-0 group-hover:opacity-100"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      
+                      {notifications.length > 0 && (
+                        <div className="p-3 border-t border-gray-200 text-center">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="text-blue-600 hover:text-blue-700"
+                            onClick={() => {
+                              setNotifications([]);
+                              setShowNotifications(false);
+                            }}
+                          >
+                            ล้างการแจ้งเตือนทั้งหมด
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+              
               {user ? (
                 <Button onClick={logout} variant="outline" size="sm" className="p-2 sm:px-3">
                   <LogOut className="h-4 w-4" />
