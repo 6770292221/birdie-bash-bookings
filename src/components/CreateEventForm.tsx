@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Plus, Minus, MapPin } from 'lucide-react';
 import { Court, Event } from '@/pages/Index';
 import { useLanguage } from '@/contexts/LanguageContext';
-import PlacesAutocomplete from './PlacesAutocomplete';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface CreateEventFormProps {
   onSubmit: (eventData: Omit<Event, 'id' | 'players' | 'status' | 'createdBy'>) => void;
@@ -138,12 +138,70 @@ const CreateEventForm = ({ onSubmit, onCancel, editEvent, onUpdateEvent }: Creat
 
           <div className="space-y-2">
             <Label htmlFor="venue" className="text-gray-700 font-medium">{t('form.venue')}</Label>
-            <PlacesAutocomplete
-              value={venue}
-              onChange={setVenue}
-              placeholder="Search for badminton courts in Thailand"
-              className=""
-            />
+            <Select value={venue} onValueChange={setVenue}>
+              <SelectTrigger className="border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                <div className="flex items-center">
+                  <MapPin className="w-4 h-4 mr-2 text-gray-500" />
+                  <SelectValue placeholder="เลือกสถานที่เล่นแบดมินตัน" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="สนามกีฬาแห่งชาติ">
+                  <div className="flex items-center">
+                    <MapPin className="w-4 h-4 mr-2 text-blue-500" />
+                    <div>
+                      <p className="font-medium">สนามกีฬาแห่งชาติ</p>
+                      <p className="text-xs text-gray-500">ราเมศร์วร, ห้วยขวาง, กรุงเทพฯ</p>
+                    </div>
+                  </div>
+                </SelectItem>
+                <SelectItem value="สโมสรกีฬาบางแสน">
+                  <div className="flex items-center">
+                    <MapPin className="w-4 h-4 mr-2 text-green-500" />
+                    <div>
+                      <p className="font-medium">สโมสรกีฬาบางแสน</p>
+                      <p className="text-xs text-gray-500">บางแสน, ชลบุรี</p>
+                    </div>
+                  </div>
+                </SelectItem>
+                <SelectItem value="ศูนย์กีฬาลำพิมิ">
+                  <div className="flex items-center">
+                    <MapPin className="w-4 h-4 mr-2 text-purple-500" />
+                    <div>
+                      <p className="font-medium">ศูนย์กีฬาลำพิมิ</p>
+                      <p className="text-xs text-gray-500">นครพิงค์, นครสวรรค์</p>
+                    </div>
+                  </div>
+                </SelectItem>
+                <SelectItem value="สนามกีฬาธรรมศาสตร์">
+                  <div className="flex items-center">
+                    <MapPin className="w-4 h-4 mr-2 text-orange-500" />
+                    <div>
+                      <p className="font-medium">สนามกีฬาธรรมศาสตร์</p>
+                      <p className="text-xs text-gray-500">รังสิต, ปทุมธานี</p>
+                    </div>
+                  </div>
+                </SelectItem>
+                <SelectItem value="ศูนย์กีฬามหิดล">
+                  <div className="flex items-center">
+                    <MapPin className="w-4 h-4 mr-2 text-red-500" />
+                    <div>
+                      <p className="font-medium">ศูนย์กีฬามหิดล</p>
+                      <p className="text-xs text-gray-500">พุทธมณฑล, นครปฐม</p>
+                    </div>
+                  </div>
+                </SelectItem>
+                <SelectItem value="สนามแบดมินตัน The Mall บางกะปิ">
+                  <div className="flex items-center">
+                    <MapPin className="w-4 h-4 mr-2 text-indigo-500" />
+                    <div>
+                      <p className="font-medium">สนามแบดมินตัน The Mall บางกะปิ</p>
+                      <p className="text-xs text-gray-500">ลาดพร้าว, กรุงเทพฯ</p>
+                    </div>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Pricing and Capacity */}

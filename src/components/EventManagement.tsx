@@ -150,6 +150,40 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
     setAbsentPlayers(newAbsentPlayers);
   };
 
+  const addNewPlayer = () => {
+    const newPlayer: Player = {
+      id: `player-${Date.now()}`,
+      name: `ผู้เล่นใหม่ ${editingPlayers.length + 1}`,
+      email: `player${editingPlayers.length + 1}@example.com`,
+      startTime: '20:00',
+      endTime: '22:00',
+      registrationTime: new Date(),
+      status: 'registered' as const,
+      userId: `mock-user-${Date.now()}`
+    };
+    setEditingPlayers([...editingPlayers, newPlayer]);
+    toast({
+      title: "Player Added",
+      description: `Added ${newPlayer.name} to the event`,
+    });
+  };
+
+  const removePlayer = (playerId: string) => {
+    const updatedPlayers = editingPlayers.filter(player => player.id !== playerId);
+    setEditingPlayers(updatedPlayers);
+    // Also remove from absent players if they were marked absent
+    const newAbsentPlayers = new Set(absentPlayers);
+    newAbsentPlayers.delete(playerId);
+    setAbsentPlayers(newAbsentPlayers);
+    
+    const removedPlayer = editingPlayers.find(p => p.id === playerId);
+    toast({
+      title: "Player Removed",
+      description: `Removed ${removedPlayer?.name} from the event`,
+      variant: "destructive",
+    });
+  };
+
   const addNewCourt = () => {
     const newCourtNumber = Math.max(...actualCourts.map(c => c.courtNumber)) + 1;
     const newCourt: Court = {
@@ -483,6 +517,12 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                       Edit Players
                     </Button>
                   )}
+                  {isEditingPlayers && (
+                    <Button onClick={addNewPlayer} variant="outline" size="sm" className="bg-green-50 hover:bg-green-100 text-green-700">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Player
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -548,6 +588,17 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
                                   </SelectContent>
                                 </Select>
                               </div>
+                            </div>
+                            <div className="flex justify-end mt-2">
+                              <Button 
+                                onClick={() => removePlayer(player.id)} 
+                                variant="outline" 
+                                size="sm"
+                                className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                              >
+                                <UserX className="w-3 h-3 mr-1" />
+                                Remove
+                              </Button>
                             </div>
                           </div>
                         ) : (

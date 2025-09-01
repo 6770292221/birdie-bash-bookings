@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, Clock, Plus, LogOut, Shield, Menu } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Plus, LogOut, Shield, Menu, CreditCard, History, Activity, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -387,21 +387,42 @@ const IndexContent = () => {
         </div>
 
         {/* Main Content - Tab Interface */}
-        <Tabs defaultValue={isAdmin ? "management" : "upcoming"} className="space-y-4">
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-2' : 'grid-cols-3'} bg-gradient-to-r from-blue-50 to-purple-50 p-1 rounded-lg border-0 h-12`}>
-            {isAdmin ? (
+        <Tabs defaultValue={!user ? "upcoming" : (isAdmin ? "management" : "upcoming")} className="space-y-4">
+          <TabsList className={`grid w-full ${
+            !user ? 'grid-cols-1' : (isAdmin ? 'grid-cols-3' : 'grid-cols-3')
+          } bg-gradient-to-r from-blue-50 to-purple-50 p-1 rounded-lg border-0 h-12`}>
+            
+            {/* Show only upcoming events if not logged in */}
+            {!user ? (
+              <TabsTrigger 
+                value="upcoming" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                อีเวนต์ที่กำลังจะมา
+              </TabsTrigger>
+            ) : isAdmin ? (
               <>
                 <TabsTrigger 
                   value="management" 
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
                 >
-                  🎯 จัดการกิจกรรม
+                  <Shield className="w-4 h-4 mr-2" />
+                  จัดการกิจกรรม
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="payment" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  การชำระเงิน
                 </TabsTrigger>
                 <TabsTrigger 
                   value="admin-history" 
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
                 >
-                  📊 ประวัติ
+                  <History className="w-4 h-4 mr-2" />
+                  ประวัติ
                 </TabsTrigger>
               </>
             ) : (
@@ -410,19 +431,22 @@ const IndexContent = () => {
                   value="upcoming" 
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
                 >
-                  📅 อีเวนต์ที่กำลังจะมา
+                  <Calendar className="w-4 h-4 mr-2" />
+                  อีเวนต์ที่กำลังจะมา
                 </TabsTrigger>
                 <TabsTrigger 
                   value="registration" 
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
                 >
-                  ✏️ ลงทะเบียนผู้เล่น
+                  <Users className="w-4 h-4 mr-2" />
+                  ลงทะเบียนผู้เล่น
                 </TabsTrigger>
                 <TabsTrigger 
                   value="user-history" 
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-200 rounded-md text-sm sm:text-base"
                 >
-                  📋 ประวัติ
+                  <Activity className="w-4 h-4 mr-2" />
+                  ประวัติ
                 </TabsTrigger>
               </>
             )}
@@ -486,47 +510,208 @@ const IndexContent = () => {
             )}
           </TabsContent>
 
+          {/* Admin Payment Tab */}
+          <TabsContent value="payment" className="space-y-4">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">การชำระเงิน</h2>
+            
+            {/* Payment Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+                <CardContent className="p-4 text-center">
+                  <TrendingUp className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-green-700">฿2,450</p>
+                  <p className="text-sm text-green-600">ยอดที่เก็บได้แล้ว</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-br from-orange-50 to-yellow-50 border-orange-200">
+                <CardContent className="p-4 text-center">
+                  <Clock className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-orange-700">฿1,200</p>
+                  <p className="text-sm text-orange-600">รอจ่ายเงิน</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
+                <CardContent className="p-4 text-center">
+                  <Activity className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-blue-700">฿800</p>
+                  <p className="text-sm text-blue-600">รอคำนวณ</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Pending Payments */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">รายการรอจ่ายเงิน</h3>
+              <div className="space-y-3">
+                {/* Mock pending payment data */}
+                {[
+                  { id: 1, event: "แบดมินตัน สนามใหญ่", players: 8, amount: 450, status: 'awaiting_payment' },
+                  { id: 2, event: "แบดมินตัน เย็นวันศุกร์", players: 6, amount: 750, status: 'awaiting_payment' },
+                ].map(payment => (
+                  <Card key={payment.id} className="bg-orange-50 border-orange-200">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h4 className="font-medium text-gray-900">{payment.event}</h4>
+                          <p className="text-sm text-gray-600">{payment.players} ผู้เล่น</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-orange-700">฿{payment.amount}</p>
+                          <Badge className="bg-orange-100 text-orange-700 text-xs">รอจ่ายเงิน</Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Calculating Events */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">รายการรอคำนวณ</h3>
+              <div className="space-y-3">
+                {/* Mock calculating events */}
+                {[
+                  { id: 1, event: "แบดมินตัน วันเสาร์บ่าย", players: 12, courts: 3, status: 'calculating' },
+                  { id: 2, event: "แบดมินตัน อาทิตย์เช้า", players: 10, courts: 3, status: 'calculating' },
+                ].map(calc => (
+                  <Card key={calc.id} className="bg-yellow-50 border-yellow-200">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h4 className="font-medium text-gray-900">{calc.event}</h4>
+                          <p className="text-sm text-gray-600">{calc.players} ผู้เล่น • {calc.courts} สนาม</p>
+                        </div>
+                        <div className="text-right">
+                          <Badge className="bg-yellow-100 text-yellow-700 text-xs">กำลังคำนวณ</Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+
           {/* Admin History Tab */}
           <TabsContent value="admin-history" className="space-y-4">
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">ประวัติการจัดกิจกรรม</h2>
+            
+            {/* Mock admin history with enhanced statuses */}
             <div className="space-y-4">
-              {[...events].sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime()).map(event => (
-                <div key={event.id} className="bg-gradient-to-r from-gray-50 to-blue-50 p-4 rounded-lg border hover:shadow-md transition-all duration-200">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{event.eventName}</h3>
-                      <p className="text-sm text-gray-600">{event.eventDate} • {event.venue}</p>
-                      <div className="flex gap-2 mt-2">
+              {[
+                {
+                  id: 1,
+                  eventName: "แบดมินตัน สนามใหญ่",
+                  eventDate: "2024-12-15",
+                  venue: "สนามกีฬาแห่งชาติ",
+                  players: 12,
+                  maxPlayers: 14,
+                  courts: 3,
+                  totalAmount: 1450,
+                  status: "completed_paid",
+                  statusText: "จบเกม จ่ายเงินแล้ว"
+                },
+                {
+                  id: 2,
+                  eventName: "แบดมินตัน เย็นวันศุกร์",
+                  eventDate: "2024-12-20",
+                  venue: "สโมสรกีฬาบางแสน",
+                  players: 8,
+                  maxPlayers: 10,
+                  courts: 2,
+                  totalAmount: 950,
+                  status: "completed_unpaid",
+                  statusText: "จบเกม รอจ่ายเงิน"
+                },
+                {
+                  id: 3,
+                  eventName: "แบดมินตัน วันเสาร์บ่าย",
+                  eventDate: "2024-12-25",
+                  venue: "ศูนย์กีฬาลำพิมิ",
+                  players: 6,
+                  maxPlayers: 12,
+                  courts: 2,
+                  totalAmount: 0,
+                  status: "cancelled",
+                  statusText: "ยกเลิก"
+                },
+                {
+                  id: 4,
+                  eventName: "แบดมินตัน อาทิตย์เช้า",
+                  eventDate: "2024-12-30",
+                  venue: "สนามกีฬาธรรมศาสตร์",
+                  players: 10,
+                  maxPlayers: 12,
+                  courts: 3,
+                  totalAmount: 1200,
+                  status: "calculating",
+                  statusText: "กำลังคำนวณ"
+                }
+              ].map(event => (
+                <Card key={event.id} className={`transition-all ${
+                  event.status === 'completed_paid' ? 'bg-green-50 border-green-200' :
+                  event.status === 'completed_unpaid' ? 'bg-orange-50 border-orange-200' :
+                  event.status === 'cancelled' ? 'bg-red-50 border-red-200' :
+                  'bg-yellow-50 border-yellow-200'
+                }`}>
+                  <CardContent className="p-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between space-y-3 md:space-y-0">
+                      {/* Event Info */}
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                            {event.eventName.charAt(0)}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-gray-900">{event.eventName}</h3>
+                            <div className="flex items-center text-sm text-gray-600 space-x-4">
+                              <span className="flex items-center">
+                                <Calendar className="w-3 h-3 mr-1" />
+                                {event.eventDate}
+                              </span>
+                              <span className="flex items-center">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                {event.venue}
+                              </span>
+                            </div>
+                            <div className="flex gap-2 mt-2">
+                              <Badge variant="outline" className="text-xs">
+                                <Users className="w-3 h-3 mr-1" />
+                                {event.players}/{event.maxPlayers} คน
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {event.courts} สนาม
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Status & Amount */}
+                      <div className="flex items-center space-x-4">
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-gray-900">
+                            {event.totalAmount > 0 ? `฿${event.totalAmount}` : '-'}
+                          </div>
+                          <div className="text-xs text-gray-500">ยอดรวม</div>
+                        </div>
                         <Badge className={`text-xs ${
-                          event.status === 'upcoming' ? 'bg-green-100 text-green-700' :
-                          event.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
-                          event.status === 'calculating' ? 'bg-yellow-100 text-yellow-700' :
-                          event.status === 'awaiting_payment' ? 'bg-orange-100 text-orange-700' :
-                          'bg-gray-100 text-gray-700'
+                          event.status === 'completed_paid' ? 'bg-green-100 text-green-700 border-green-300' :
+                          event.status === 'completed_unpaid' ? 'bg-orange-100 text-orange-700 border-orange-300' :
+                          event.status === 'cancelled' ? 'bg-red-100 text-red-700 border-red-300' :
+                          'bg-yellow-100 text-yellow-700 border-yellow-300'
                         }`}>
-                          {t(`events.${event.status}`)}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {event.players.filter(p => p.status === 'registered').length}/{event.maxPlayers} ผู้เล่น
+                          {event.status === 'completed_paid' && <TrendingUp className="w-3 h-3 mr-1" />}
+                          {event.status === 'completed_unpaid' && <Clock className="w-3 h-3 mr-1" />}
+                          {event.status === 'cancelled' && <Activity className="w-3 h-3 mr-1" />}
+                          {event.status === 'calculating' && <Activity className="w-3 h-3 mr-1 animate-spin" />}
+                          {event.statusText}
                         </Badge>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-blue-700">
-                        {event.status === 'completed' ? 
-                          `฿${((event.courts.reduce((sum, court) => {
-                            const hours = (new Date(`2000-01-01T${court.endTime}`).getTime() - 
-                                        new Date(`2000-01-01T${court.startTime}`).getTime()) / (1000 * 60 * 60);
-                            return sum + hours;
-                          }, 0) * event.courtHourlyRate) + 
-                          ((event.shuttlecocksUsed || 0) * event.shuttlecockPrice)).toFixed(0)}` 
-                          : '-'
-                        }
-                      </div>
-                      <div className="text-xs text-gray-500">ยอดรวม</div>
-                    </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </TabsContent>
@@ -603,6 +788,115 @@ const IndexContent = () => {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* User History Tab */}
+          <TabsContent value="user-history" className="space-y-4">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">ประวัติการเล่น</h2>
+            
+            {/* Mock user history data with different payment statuses */}
+            <div className="space-y-4">
+              {[
+                {
+                  id: 1,
+                  eventName: "แบดมินตัน สนามใหญ่",
+                  eventDate: "2024-12-15",
+                  venue: "สนามกีฬาแห่งชาติ",
+                  cost: 250,
+                  status: "paid",
+                  paymentStatus: "ชำระแล้ว",
+                  participated: true
+                },
+                {
+                  id: 2,
+                  eventName: "แบดมินตัน เย็นวันศุกร์",
+                  eventDate: "2024-12-20",
+                  venue: "สโมสรกีฬาบางแสน",
+                  cost: 180,
+                  status: "pending_payment",
+                  paymentStatus: "รอจ่ายเงิน",
+                  participated: true
+                },
+                {
+                  id: 3,
+                  eventName: "แบดมินตัน วันเสาร์บ่าย",
+                  eventDate: "2024-12-25",
+                  venue: "ศูนย์กีฬาลำพิมิ",
+                  cost: 320,
+                  status: "fined",
+                  paymentStatus: "โดนปรับ",
+                  participated: false,
+                  fine: 100
+                }
+              ].map((history) => (
+                <Card key={history.id} className={`transition-all ${
+                  history.status === 'paid' ? 'bg-green-50 border-green-200' :
+                  history.status === 'pending_payment' ? 'bg-orange-50 border-orange-200' :
+                  'bg-red-50 border-red-200'
+                }`}>
+                  <CardContent className="p-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between space-y-3 md:space-y-0">
+                      {/* Event Info */}
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                            {history.eventName.charAt(0)}
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-900">{history.eventName}</h3>
+                            <div className="flex items-center text-sm text-gray-600 space-x-4">
+                              <span className="flex items-center">
+                                <Calendar className="w-3 h-3 mr-1" />
+                                {history.eventDate}
+                              </span>
+                              <span className="flex items-center">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                {history.venue}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Payment Info */}
+                      <div className="flex items-center space-x-4">
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-gray-900">
+                            ฿{history.cost}
+                            {history.fine && (
+                              <span className="text-red-600 text-sm ml-1">(+฿{history.fine} ปรับ)</span>
+                            )}
+                          </p>
+                          <div className="flex items-center space-x-2">
+                            <Badge className={`text-xs ${
+                              history.status === 'paid' ? 'bg-green-100 text-green-700 border-green-300' :
+                              history.status === 'pending_payment' ? 'bg-orange-100 text-orange-700 border-orange-300' :
+                              'bg-red-100 text-red-700 border-red-300'
+                            }`}>
+                              {history.status === 'paid' && <TrendingUp className="w-3 h-3 mr-1" />}
+                              {history.status === 'pending_payment' && <Clock className="w-3 h-3 mr-1" />}
+                              {history.status === 'fined' && <Activity className="w-3 h-3 mr-1" />}
+                              {history.paymentStatus}
+                            </Badge>
+                            {!history.participated && (
+                              <Badge className="bg-gray-100 text-gray-700 text-xs">
+                                ไม่ได้เล่น
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Empty state if no history */}
+            <div className="text-center py-8 text-gray-500">
+              <Activity className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p>แสดงประวัติการเล่นของคุณที่นี่</p>
+            </div>
           </TabsContent>
         </Tabs>
 
