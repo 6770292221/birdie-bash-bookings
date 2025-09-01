@@ -490,14 +490,46 @@ const IndexContent = () => {
 
           {/* User Info */}
           {user && (
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-4">
-              {isAdmin && (
-                <Badge variant="destructive" className="flex items-center gap-1">
-                  <Shield className="w-3 h-3" />
-                  Admin
-                </Badge>
-              )}
-              <span className="text-sm text-gray-600">สวัสดี, {user.name}</span>
+            <div className="flex flex-col items-center justify-center gap-3 mb-4">
+              {/* Profile Picture */}
+              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-green-500 shadow-lg">
+                <img 
+                  src={user.profilePicture || `https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format`}
+                  alt={user.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              
+              {/* User Name and Role */}
+              <div className="flex flex-col items-center justify-center gap-2">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+                  {isAdmin && (
+                    <Badge variant="destructive" className="flex items-center gap-1">
+                      <Shield className="w-3 h-3" />
+                      Admin
+                    </Badge>
+                  )}
+                  <span className="text-sm text-gray-600">สวัสดี, {user.name}</span>
+                </div>
+                
+                {/* Skill Level Badge - Below name */}
+                {user.skillLevel && (
+                  <Badge 
+                    variant="outline" 
+                    className={`text-xs font-bold ${
+                      user.skillLevel === 'P' ? 'bg-red-50 text-red-700 border-red-300' :
+                      user.skillLevel === 'S' ? 'bg-blue-50 text-blue-700 border-blue-300' :
+                      user.skillLevel === 'BG' ? 'bg-green-50 text-green-700 border-green-300' :
+                      'bg-yellow-50 text-yellow-700 border-yellow-300'
+                    }`}
+                  >
+                    <i className="fas fa-medal mr-1"></i>
+                    {user.skillLevel === 'P' ? 'Level P' :
+                     user.skillLevel === 'S' ? 'Level S' :
+                     user.skillLevel === 'BG' ? 'Level BG' : 'Level N'}
+                  </Badge>
+                )}
+              </div>
             </div>
           )}
 

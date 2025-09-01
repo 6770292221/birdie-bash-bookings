@@ -1,11 +1,16 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
+type SkillLevel = 'P' | 'S' | 'BG' | 'N';
+
 interface UserProfile {
   id: string;
   email: string;
   role: 'admin' | 'user';
   name: string;
+  skillLevel?: SkillLevel;
+  profilePicture?: string;
+  joinedDate?: string;
 }
 
 interface AuthContextType {
@@ -25,14 +30,20 @@ const mockUsers = [
     email: 'admin@badminton.com',
     password: 'admin123',
     role: 'admin' as const,
-    name: 'ผู้ดูแลระบบ'
+    name: 'ผู้ดูแลระบบ',
+    skillLevel: 'P' as SkillLevel,
+    profilePicture: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format',
+    joinedDate: '2023-01-15'
   },
   {
     id: 'b2a84508-41dd-4644-9881-8d5e8587e067',
     email: 'user@badminton.com',
     password: 'user123',
     role: 'user' as const,
-    name: 'ผู้ใช้ทั่วไป'
+    name: 'สมชาย รักแบด',
+    skillLevel: 'BG' as SkillLevel,
+    profilePicture: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face&auto=format',
+    joinedDate: '2023-06-20'
   }
 ];
 
@@ -67,7 +78,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         id: mockUser.id,
         email: mockUser.email,
         role: mockUser.role,
-        name: mockUser.name
+        name: mockUser.name,
+        skillLevel: mockUser.skillLevel,
+        profilePicture: mockUser.profilePicture,
+        joinedDate: mockUser.joinedDate
       };
       
       setUser(userData);
