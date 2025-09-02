@@ -227,16 +227,33 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
       return new Date(`2000-01-01T${endTime}`).getTime();
     }));
 
-    // Calculate shuttlecock cost per player (only for registered players)
+    // Calculate shuttlecock cost per player (only for players who actually played)
+    const playersWhoPlayed = currentRegisteredPlayers.filter(p => !absentPlayers.has(p.id));
     const shuttlecockCost = shuttlecocksUsed * event.shuttlecockPrice;
-    const shuttlecockCostPerPlayer = currentRegisteredPlayers.length > 0 ? shuttlecockCost / currentRegisteredPlayers.length : 0;
+    const shuttlecockCostPerPlayer = playersWhoPlayed.length > 0 ? shuttlecockCost / playersWhoPlayed.length : 0;
 
-    // Calculate absent fines (only for registered players)
-    const absentFine = absentPlayers.size * 100;
-    const absentFinePerPlayer = currentRegisteredPlayers.length > 0 ? absentFine / currentRegisteredPlayers.length : 0;
+    // Absent players pay their own fine (100 THB each), not shared with others
 
     // Calculate individual costs for registered players
     const registeredPlayersBreakdown: CostBreakdown[] = currentRegisteredPlayers.map(player => {
+      const isAbsent = absentPlayers.has(player.id);
+      
+      // If player is absent, they only pay the fine
+      if (isAbsent) {
+        return {
+          name: player.name,
+          playerId: player.id,
+          startTime: player.startTime || '20:00',
+          endTime: player.endTime,
+          courtFee: 0,
+          shuttlecockFee: 0,
+          fine: 100, // Fixed 100 THB fine for absent players
+          total: 100,
+          hourlyBreakdown: []
+        };
+      }
+
+      // For players who played, calculate court fee and shuttlecock cost
       const playerStartTime = new Date(`2000-01-01T${player.startTime || '20:00'}`).getTime();
       const playerEndTime = new Date(`2000-01-01T${player.endTime}`).getTime();
       let courtFee = 0;
@@ -247,8 +264,8 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
         const hourStart = new Date(time).toTimeString().slice(0, 5);
         const hourEnd = new Date(time + 60 * 60000).toTimeString().slice(0, 5);
         
-        // Count how many players are playing in this hour
-        const playersInThisHour = currentRegisteredPlayers.filter(p => {
+        // Count how many players are playing in this hour (excluding absent players)
+        const playersInThisHour = playersWhoPlayed.filter(p => {
           const pStartTime = new Date(`2000-01-01T${p.startTime || '20:00'}`).getTime();
           const pEndTime = new Date(`2000-01-01T${p.endTime}`).getTime();
           return pStartTime <= time && pEndTime > time;
@@ -265,7 +282,7 @@ const EventManagement = ({ event, onUpdateEvent, onClose }: EventManagementProps
       }
 
       const shuttlecockFee = Math.round(shuttlecockCostPerPlayer * 100) / 100;
-      const fine = Math.round(absentFinePerPlayer * 100) / 100;
+      const fine = 0; // No fine for players who played
       const total = Math.round((courtFee + shuttlecockFee + fine) * 100) / 100;
       
       return {

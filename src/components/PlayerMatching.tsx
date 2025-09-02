@@ -12,7 +12,7 @@ interface PlayerMatchingProps {
   onUpdateEvent: (eventId: string, updates: Partial<Event>) => void;
 }
 
-type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
+type SkillLevel = 'N' | 'S' | 'BG' | 'P';
 
 interface EnhancedPlayer extends Player {
   skillLevel?: SkillLevel;
@@ -20,17 +20,24 @@ interface EnhancedPlayer extends Player {
 }
 
 const skillIcons = {
-  beginner: Target,
-  intermediate: Zap,
-  advanced: Trophy,
-  expert: Star
+  N: Target,      // Newbie (มือใหม่)
+  S: Zap,         // Starter (มือเริ่มต้น) 
+  BG: Trophy,     // Beginner (มือเริ่มต้น/มือหน้าบ้าน)
+  P: Star         // Practicer (มือฝึกหัด)
 };
 
 const skillColors = {
-  beginner: 'bg-green-100 text-green-700 border-green-300',
-  intermediate: 'bg-blue-100 text-blue-700 border-blue-300',
-  advanced: 'bg-orange-100 text-orange-700 border-orange-300',
-  expert: 'bg-purple-100 text-purple-700 border-purple-300'
+  N: 'bg-yellow-100 text-yellow-700 border-yellow-300',    // Newbie - เหลือง
+  S: 'bg-blue-100 text-blue-700 border-blue-300',         // Starter - น้ำเงิน
+  BG: 'bg-green-100 text-green-700 border-green-300',     // Beginner - เขียว
+  P: 'bg-red-100 text-red-700 border-red-300'             // Practicer - แดง
+};
+
+const skillLabels = {
+  N: 'N (Newbie)',
+  S: 'S (Starter)',
+  BG: 'BG (Beginner)',
+  P: 'P (Practicer)'
 };
 
 const PlayerMatching: React.FC<PlayerMatchingProps> = ({ event, onUpdateEvent }) => {
@@ -43,26 +50,71 @@ const PlayerMatching: React.FC<PlayerMatchingProps> = ({ event, onUpdateEvent })
     .filter(p => p.status === 'registered')
     .map(player => ({
       ...player,
-      skillLevel: ['beginner', 'intermediate', 'advanced', 'expert'][Math.floor(Math.random() * 4)] as SkillLevel,
+      skillLevel: ['N', 'S', 'BG', 'P'][Math.floor(Math.random() * 4)] as SkillLevel,
       matchPreference: ['similar', 'mixed', 'challenging'][Math.floor(Math.random() * 3)] as 'similar' | 'mixed' | 'challenging'
     }));
+
+  // Skill level hierarchy for matching (higher number = more skilled)
+  const skillRank = { N: 1, S: 2, BG: 3, P: 4 };
+
+  const findBestMatch = (player: EnhancedPlayer, availablePlayers: EnhancedPlayer[]): EnhancedPlayer | null => {
+    if (availablePlayers.length === 0) return null;
+
+    const playerRank = skillRank[player.skillLevel!];
+    
+    // Find players with similar skill levels (±1 level difference preferred)
+    const similarSkillPlayers = availablePlayers.filter(p => {
+      const diff = Math.abs(skillRank[p.skillLevel!] - playerRank);
+      return diff <= 1;
+    });
+
+    // If no similar skill players, find any available player
+    const candidates = similarSkillPlayers.length > 0 ? similarSkillPlayers : availablePlayers;
+    
+    // Prefer players with overlapping playing times
+    const overlappingPlayers = candidates.filter(p => {
+      const playerStart = new Date(`2000-01-01T${player.startTime || '20:00'}`).getTime();
+      const playerEnd = new Date(`2000-01-01T${player.endTime}`).getTime();
+      const pStart = new Date(`2000-01-01T${p.startTime || '20:00'}`).getTime();
+      const pEnd = new Date(`2000-01-01T${p.endTime}`).getTime();
+      
+      // Check if time ranges overlap
+      return playerStart < pEnd && pStart < playerEnd;
+    });
+
+    const finalCandidates = overlappingPlayers.length > 0 ? overlappingPlayers : candidates;
+    
+    // Return random player from final candidates
+    return finalCandidates[Math.floor(Math.random() * finalCandidates.length)];
+  };
 
   const autoMatchPlayers = () => {
     setIsMatching(true);
     
-    // Simple matching algorithm - pair players with similar skill levels
-    const shuffledPlayers = [...enhancedPlayers].sort(() => Math.random() - 0.5);
+    // Smart matching algorithm based on skill levels and playing time
+    const availablePlayers = [...enhancedPlayers];
     const pairs: EnhancedPlayer[][] = [];
     
-    for (let i = 0; i < shuffledPlayers.length; i += 2) {
-      if (i + 1 < shuffledPlayers.length) {
-        pairs.push([shuffledPlayers[i], shuffledPlayers[i + 1]]);
+    while (availablePlayers.length > 0) {
+      const player1 = availablePlayers.shift()!; // Take first available player
+      const remainingPlayers = availablePlayers.filter(p => p.id !== player1.id);
+      
+      const bestMatch = findBestMatch(player1, remainingPlayers);
+      
+      if (bestMatch) {
+        // Remove matched player from available list
+        const index = availablePlayers.findIndex(p => p.id === bestMatch.id);
+        if (index > -1) {
+          availablePlayers.splice(index, 1);
+        }
+        pairs.push([player1, bestMatch]);
       } else {
-        // Odd player - add to last pair if exists, or create single player "pair"
-        if (pairs.length > 0) {
-          pairs[pairs.length - 1].push(shuffledPlayers[i]);
+        // No match found - check if we can add to existing pair (make it a triple)
+        if (pairs.length > 0 && pairs[pairs.length - 1].length === 2) {
+          pairs[pairs.length - 1].push(player1);
         } else {
-          pairs.push([shuffledPlayers[i]]);
+          // Create single player pair
+          pairs.push([player1]);
         }
       }
     }
@@ -83,7 +135,7 @@ const PlayerMatching: React.FC<PlayerMatchingProps> = ({ event, onUpdateEvent })
     return (
       <Badge className={`${skillColors[skillLevel]} text-xs`}>
         <Icon className="w-3 h-3 mr-1" />
-        {t(`matching.${skillLevel}`)}
+        {skillLabels[skillLevel]}
       </Badge>
     );
   };
